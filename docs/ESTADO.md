@@ -80,7 +80,7 @@ Lo que la Fase 5 hereda:
 - Remoto `origin` en `github.com/ElwinsZorrilla/personal-finance`. Ramas:
   `main`, `fase/2-base-api`, `fase/3-motor-presupuesto`, `fase/4-endpoints`,
   `fase/5-datos-flutter`.
-- .NET 10.0.204, Docker 29.5.3 y Flutter 3.44.5 (en `C:\srclutter`, fuera
-  del PATH: hay que añadirlo a mano).
+- .NET 10.0.204, Docker 29.5.3 y Flutter 3.44.5. Flutter está instalado en
+  `C:\src\flutter` pero **no en el PATH**: hay que añadirlo a mano.
 - Regenerar el contrato tras cambiar la superficie del API:
   `dotnet run --project src/Margen.Api -- --generar-contrato`
