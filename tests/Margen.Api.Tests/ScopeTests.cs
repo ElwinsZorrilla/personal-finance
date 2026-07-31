@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Margen.Api.Auth;
+using Margen.Api.Contracts;
 using Margen.Api.Tests.Infra;
 using Margen.Domain;
 
@@ -14,6 +15,14 @@ namespace Margen.Api.Tests;
 [Collection(PostgresCollection.Name)]
 public sealed class ScopeTests(PostgresFixture postgres)
 {
+    /// <summary>
+    /// El registro de efectivo necesita una cuenta de efectivo activa donde
+    /// anotarlo. Sembrarla aquí es lo que permite afirmar un 201 exacto en vez
+    /// de «cualquier cosa que no sea 403», que pasaría también con el endpoint
+    /// roto.
+    /// </summary>
+    private Task<Seed> PlantAsync() => Seed.PlantAsync(postgres.ConnectionString);
+
     [Fact]
     public async Task el_token_del_atajo_lleva_un_solo_alcance()
     {
@@ -55,6 +64,7 @@ public sealed class ScopeTests(PostgresFixture postgres)
     [Fact]
     public async Task el_token_del_atajo_si_alcanza_el_registro_de_efectivo()
     {
+        await PlantAsync();
         await using var app = new TestApp(postgres.ConnectionString, null);
         using HttpClient client = app.CreateClient();
         using var key = new TestDeviceKey();
@@ -64,18 +74,18 @@ public sealed class ScopeTests(PostgresFixture postgres)
 
         HttpResponseMessage response = await client.PostAsJsonAsync(
             "/transactions/cash",
-            new { texto = "Gasté 450 pesos en almuerzo" });
+            new CreateCashRequest(45_000, "Almuerzo", null, null, null));
 
-        // 501 y no 403: la autorización pasó y lo que falta es la
-        // implementación, que es la Fase 9. Si aquí saliera 403, el criterio de
-        // «alcance solo de creación de efectivo» estaría cumplido por accidente
-        // —el token no podría hacer nada— y no por diseño.
-        Assert.Equal(HttpStatusCode.NotImplemented, response.StatusCode);
+        // 201 y no 403. Si aquí saliera 403, el criterio de «alcance solo de
+        // creación de efectivo» estaría cumplido por accidente —el token no
+        // podría hacer nada— y no por diseño.
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
     public async Task el_token_de_la_app_tambien_alcanza_el_efectivo()
     {
+        await PlantAsync();
         await using var app = new TestApp(postgres.ConnectionString, null);
         using HttpClient client = app.CreateClient();
         using var key = new TestDeviceKey();
@@ -85,9 +95,9 @@ public sealed class ScopeTests(PostgresFixture postgres)
 
         HttpResponseMessage response = await client.PostAsJsonAsync(
             "/transactions/cash",
-            new { texto = "Gasté 450 pesos en almuerzo" });
+            new CreateCashRequest(51_000, "Cena", null, null, null));
 
-        Assert.Equal(HttpStatusCode.NotImplemented, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
     [Fact]
@@ -98,7 +108,7 @@ public sealed class ScopeTests(PostgresFixture postgres)
 
         HttpResponseMessage response = await client.PostAsJsonAsync(
             "/transactions/cash",
-            new { texto = "Gasté 450 pesos en almuerzo" });
+            new CreateCashRequest(45_000, "Almuerzo", null, null, null));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -128,7 +138,7 @@ public sealed class ScopeTests(PostgresFixture postgres)
 
         HttpResponseMessage response = await conAtajo.PostAsJsonAsync(
             "/transactions/cash",
-            new { texto = "Gasté 450 pesos en almuerzo" });
+            new CreateCashRequest(45_000, "Almuerzo", null, null, null));
 
         // El teléfono se perdió y el token muere hoy, no dentro de un año.
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);

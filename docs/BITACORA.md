@@ -23,4 +23,12 @@ Una línea por iteración cerrada.
             la revisión multi-agente falló entera por límite de sesión:
             CR-003 la respalda un solo lector y hay que relanzarla
             deuda abierta: m14 (fase 8), m15 (sin fase, tarea de sesión)
+
+2026-07-31 · FASE-4 · endpoints, agregador y contrato versionado
+            CR-004 aprobada tras 2 vueltas · 3 Majors corregidos
+            compuerta 1 en verde: 234 pruebas · 90 de integración sobre
+            Postgres 16 · contrato de 19 rutas en docs/api/openapi.json
+            deuda m9, m10, m11 y m12 pagada
+            la compilación rechazó Microsoft.OpenApi 2.0.0 por vulnerabilidad
+            deuda abierta: m16 (fase 12), m17 (fase 10), m18 (fase 10)
 ```

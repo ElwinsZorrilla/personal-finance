@@ -90,7 +90,37 @@ public sealed class DeviceService(
         };
 
         db.Devices.Add(device);
-        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException)
+        {
+            // Paga la deuda m9 de CR-002. Dos altas del mismo teléfono a la vez
+            // chocaban contra el índice único y salían como 500 con traza. La
+            // comprobación de más arriba no basta: entre leer y escribir cabe
+            // otra petición. Aquí se resuelve donde de verdad se decide, que es
+            // en el índice, y el resultado es el mismo que el del camino sin
+            // carrera.
+            db.Entry(device).State = EntityState.Detached;
+
+            Device? winner = await db.Devices
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.PublicKeyFingerprint == fingerprint, cancellationToken)
+                .ConfigureAwait(false);
+
+            // Si no hay ganador, el fallo no era la carrera y no se disfraza:
+            // se deja subir y sale como 500, que es lo que es.
+            if (winner is null)
+            {
+                throw;
+            }
+
+            return winner.IsActive
+                ? DeviceRegistration.Ok(winner.Id)
+                : DeviceRegistration.Revoked;
+        }
 
         Logs.DeviceRegistered(logger, device.Id, fingerprint);
 

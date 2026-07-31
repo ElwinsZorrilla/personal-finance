@@ -30,6 +30,7 @@ src/          .NET. Servidor.
   Margen.Worker/          Lector del buzón. Esqueleto hasta la Fase 6.
 tests/        Pruebas del servidor. Las de integración usan Postgres real.
 docs/         Sistema visual, decisiones, revisiones, deuda, briefs, planes.
+  api/          Contrato OpenAPI versionado. Se regenera, no se edita.
 infra/        Stack de Docker para el servidor.
 ```
 
@@ -101,8 +102,8 @@ Y se lee `git diff --cached` buscando secretos.
 | 1 | Sistema visual, dominio, infraestructura | Cerrada (CR-001) |
 | 2 | Base del API, esquema, autenticación | Cerrada (CR-002) |
 | 3 | Motor de presupuesto | Cerrada (CR-003) |
-| 4 | Endpoints y contrato | Siguiente |
-| 5 | Capa de datos en Flutter | |
+| 4 | Endpoints y contrato | Cerrada (CR-004) |
+| 5 | Capa de datos en Flutter | Siguiente |
 | 6 | Ingesta de correo, sin parser de banco | |
 | 7 | Parser del banco | Falta una muestra real |
 | 8 | Clasificación y anomalías | |

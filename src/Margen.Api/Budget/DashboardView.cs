@@ -1,0 +1,100 @@
+using Margen.Budget;
+
+namespace Margen.Api.Budget;
+
+/// <summary>
+/// Una cifra que puede no existir.
+/// </summary>
+/// <remarks>
+/// Es la forma en el cable de <see cref="Outcome{T}"/>. Cuando el motor no
+/// puede calcular, viaja <c>cents = null</c> con el motivo, nunca un cero. En
+/// esta pantalla, cero pesos significa «no gastes nada», que es una respuesta
+/// concreta a una pregunta que no se pudo responder.
+/// </remarks>
+public sealed record MoneyValue(long? Cents, string? Unavailable)
+{
+    public static MoneyValue Of(Domain.Money money) => new(money.Cents, null);
+
+    public static MoneyValue From(Outcome<Domain.Money> outcome) =>
+        outcome.IsComputed
+            ? new MoneyValue(outcome.Value.Cents, null)
+            : new MoneyValue(null, outcome.Reason);
+}
+
+public sealed record DeductionView(string Kind, long Cents);
+
+public sealed record PeriodView(
+    DateOnly Start,
+    DateOnly End,
+    DateOnly Today,
+    int TotalDays,
+    int DaysRemaining,
+    int ElapsedDays);
+
+public sealed record CategoryLineView(
+    Guid CategoryId,
+    string Name,
+    string Priority,
+    long AllocatedCents,
+    long SpentCents,
+    long AvailableCents,
+    bool CanBeTrimmed);
+
+public sealed record CommitmentView(
+    Guid Id,
+    string Label,
+    long AmountCents,
+    string Priority,
+    DateOnly? DueOn);
+
+public sealed record AlertView(
+    Guid Id,
+    string Kind,
+    string Title,
+    string Detail,
+    bool IsUrgent,
+    DateTime CreatedAt);
+
+public sealed record TransactionView(
+    Guid Id,
+    string Merchant,
+    long AmountCents,
+    string Currency,
+    DateTime OccurredAt,
+    DateOnly OccurredOn,
+    string Kind,
+    string Status,
+    string Source,
+    Guid? CategoryId,
+    string? CategoryName,
+    string AccountLastFour,
+    int ConfidenceBasisPoints);
+
+/// <summary>
+/// Todo lo que la pantalla principal necesita, ya resuelto.
+/// </summary>
+/// <remarks>
+/// Cifras finales, no ingredientes. El cliente presenta y no calcula: dos
+/// implementaciones del mismo cálculo en dos lenguajes es garantía de que se
+/// desincronizan. Por eso aquí no hay ninguna lista que haya que sumar en
+/// pantalla para obtener una de las cifras de arriba.
+/// </remarks>
+public sealed record DashboardView(
+    PeriodView Period,
+    long SafeToSpendCents,
+    bool IsOverdrawn,
+    long ShortfallCents,
+    IReadOnlyList<DeductionView> Deductions,
+    long LiquidCents,
+    long SafeTodayCents,
+    long SpentSoFarCents,
+    long ExpectedByNowCents,
+    long PaceDeviationCents,
+    long ProjectedCloseCents,
+    DateOnly? ProjectedDepletion,
+    MoneyValue HistoricalBaseline,
+    int HistoricalPeriodsConsidered,
+    IReadOnlyList<CategoryLineView> Categories,
+    IReadOnlyList<CommitmentView> Commitments,
+    IReadOnlyList<AlertView> Attention,
+    IReadOnlyList<TransactionView> Recent);

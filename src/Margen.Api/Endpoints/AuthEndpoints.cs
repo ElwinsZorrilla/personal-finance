@@ -5,6 +5,7 @@ using Margen.Domain.Entities;
 using Margen.Infrastructure;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -24,9 +25,19 @@ public static class AuthEndpoints
 
         RouteGroupBuilder group = app.MapGroup("/auth").WithTags("Autenticación");
 
-        group.MapPost("/devices", RegisterDeviceAsync).AllowAnonymous();
-        group.MapPost("/challenges", CreateChallengeAsync).AllowAnonymous();
-        group.MapPost("/tokens", RedeemAsync).AllowAnonymous();
+        // El límite va en los tres endpoints que se pueden llamar sin token.
+        // Paga la deuda m10 de CR-002.
+        group.MapPost("/devices", RegisterDeviceAsync)
+            .AllowAnonymous()
+            .RequireRateLimiting(RateLimits.Authentication);
+
+        group.MapPost("/challenges", CreateChallengeAsync)
+            .AllowAnonymous()
+            .RequireRateLimiting(RateLimits.Authentication);
+
+        group.MapPost("/tokens", RedeemAsync)
+            .AllowAnonymous()
+            .RequireRateLimiting(RateLimits.Authentication);
 
         group.MapGet("/whoami", WhoAmI).RequireAuthorization();
 
@@ -131,17 +142,16 @@ public static class AuthEndpoints
             token.Scopes));
     }
 
-    private static Ok<WhoAmIResponse> WhoAmI(ClaimsPrincipal user)
+    private static IResult WhoAmI(ClaimsPrincipal user)
     {
-        Guid deviceId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        Guid tokenId = Guid.Parse(
-            user.FindFirstValue(TokenAuthenticationHandler.TokenIdClaimType)!);
+        if (!CurrentDevice.TryGetId(user, out Guid deviceId)
+            || !CurrentDevice.TryGetTokenId(user, out Guid tokenId))
+        {
+            return Problem(StatusCodes.Status401Unauthorized, "El token no identifica un dispositivo.");
+        }
 
-        string[] scopes = [.. user
-            .FindAll(TokenAuthenticationHandler.ScopeClaimType)
-            .Select(c => c.Value)];
-
-        return TypedResults.Ok(new WhoAmIResponse(deviceId, tokenId, scopes));
+        return Results.Ok(
+            new WhoAmIResponse(deviceId, tokenId, CurrentDevice.ScopesOf(user)));
     }
 
     private static async Task<IResult> IssueShortcutTokenAsync(
@@ -152,7 +162,10 @@ public static class AuthEndpoints
         ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        Guid deviceId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (!CurrentDevice.TryGetId(user, out Guid deviceId))
+        {
+            return Problem(StatusCodes.Status401Unauthorized, "El token no identifica un dispositivo.");
+        }
 
         Device? device = await db.Devices
             .FirstOrDefaultAsync(d => d.Id == deviceId, cancellationToken)
@@ -187,7 +200,10 @@ public static class AuthEndpoints
         ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        Guid deviceId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (!CurrentDevice.TryGetId(user, out Guid deviceId))
+        {
+            return Problem(StatusCodes.Status401Unauthorized, "El token no identifica un dispositivo.");
+        }
 
         var tokens = await db.AccessTokens
             .Where(t => t.DeviceId == deviceId)
@@ -214,7 +230,10 @@ public static class AuthEndpoints
         ClaimsPrincipal user,
         CancellationToken cancellationToken)
     {
-        Guid deviceId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (!CurrentDevice.TryGetId(user, out Guid deviceId))
+        {
+            return Problem(StatusCodes.Status401Unauthorized, "El token no identifica un dispositivo.");
+        }
 
         await tokens.RevokeAsync(deviceId, tokenId, cancellationToken).ConfigureAwait(false);
 

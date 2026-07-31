@@ -8,6 +8,11 @@
 
   <ItemGroup>
     <ProjectReference Include="../Margen.Infrastructure/Margen.Infrastructure.csproj" />
+    <ProjectReference Include="../Margen.Budget/Margen.Budget.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
   </ItemGroup>
 
 </Project>
