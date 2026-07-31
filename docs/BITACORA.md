@@ -15,4 +15,12 @@ Una línea por iteración cerrada.
             el repositorio no tenía git: la fase 1 quedó como commit base
             pendiente: añadir el remoto origin, correr la compuerta 1 de Flutter
             deuda abierta: m9–m12 (fase 4), m13 (fase 6)
+
+2026-07-31 · FASE-3 · motor de presupuesto, lógica pura
+            CR-003 aprobada tras 2 vueltas · 3 Majors corregidos
+            compuerta 1 en verde: 185 pruebas · Margen.Budget al 100 % de
+            líneas y ramas, contra el 90 % exigido
+            la revisión multi-agente falló entera por límite de sesión:
+            CR-003 la respalda un solo lector y hay que relanzarla
+            deuda abierta: m14 (fase 8), m15 (sin fase, tarea de sesión)
 ```

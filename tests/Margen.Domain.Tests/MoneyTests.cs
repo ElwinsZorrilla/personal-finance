@@ -149,11 +149,147 @@ public sealed class MoneyTests
     }
 
     [Fact]
+    public void el_promedio_ponderado_redondea_una_sola_vez()
+    {
+        // Escalar cada término por su peso y sumar redondearía tres veces y
+        // sumaría los tres errores. Con tres valores de 5 centavos, el
+        // promedio ponderado tiene que ser 5, no 7.
+        Money promedio = Money.WeightedAverage(
+            [new Money(5), new Money(5), new Money(5)],
+            [50, 30, 20]);
+
+        Assert.Equal(5, promedio.Cents);
+    }
+
+    [Fact]
+    public void el_promedio_ponderado_usa_solo_los_pesos_que_hacen_falta()
+    {
+        // Con dos valores y tres pesos, el denominador es 80 y no 100. Es lo
+        // que hace que un usuario con dos meses de historia no vea una base
+        // un 20 % menor de lo que gasta.
+        Money promedio = Money.WeightedAverage(
+            [new Money(800_000), Money.Zero],
+            [50, 30, 20]);
+
+        Assert.Equal(500_000, promedio.Cents);
+    }
+
+    [Fact]
+    public void el_promedio_ponderado_no_desborda_con_cifras_grandes()
+    {
+        // Diez millones de pesos por un peso de mil millones desborda un long
+        // si el numerador no se acumula en Int128.
+        Money promedio = Money.WeightedAverage(
+            [new Money(1_000_000_000), new Money(1_000_000_000)],
+            [1_000_000_000, 1_000_000_000]);
+
+        Assert.Equal(1_000_000_000, promedio.Cents);
+    }
+
+    [Fact]
+    public void el_promedio_ponderado_redondea_alejandose_del_cero()
+    {
+        // (1 + 2) / 2 = 1.5 → 2. Y con signo negativo, −2.
+        Assert.Equal(2, Money.WeightedAverage([new Money(1), new Money(2)], [1, 1]).Cents);
+        Assert.Equal(-2, Money.WeightedAverage([new Money(-1), new Money(-2)], [1, 1]).Cents);
+    }
+
+    [Fact]
+    public void el_promedio_ponderado_rechaza_una_lista_vacia()
+    {
+        Assert.Throws<ArgumentException>(() => Money.WeightedAverage([], [50]));
+    }
+
+    [Fact]
+    public void el_promedio_ponderado_rechaza_pesos_insuficientes()
+    {
+        Assert.Throws<ArgumentException>(
+            () => Money.WeightedAverage([new Money(1), new Money(2)], [50]));
+    }
+
+    [Fact]
+    public void el_promedio_ponderado_rechaza_pesos_que_suman_cero()
+    {
+        Assert.Throws<ArgumentException>(
+            () => Money.WeightedAverage([new Money(1), new Money(2)], [0, 0]));
+    }
+
+    [Fact]
+    public void el_promedio_ponderado_rechaza_un_peso_negativo()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => Money.WeightedAverage([new Money(1), new Money(2)], [3, -1]));
+    }
+
+    [Fact]
+    public void sum_suma_una_secuencia_sin_perder_centavos()
+    {
+        Assert.Equal(1000, Money.Sum(Enumerable.Repeat(new Money(10), 100)).Cents);
+        Assert.Equal(0, Money.Sum([]).Cents);
+        Assert.Equal(-500, Money.Sum([new Money(500), new Money(-1000)]).Cents);
+    }
+
+    [Fact]
     public void las_comparaciones_ordenan_por_centavos()
     {
         Assert.True(new Money(200) > new Money(100));
         Assert.True(new Money(-200) < new Money(-100));
         Assert.True(new Money(100) >= new Money(100));
         Assert.True(new Money(100) <= new Money(100));
+    }
+
+    [Fact]
+    public void compare_to_ordena_una_lista()
+    {
+        // Es lo que usa cualquier ordenación del servidor. Sin él, ordenar
+        // montos caería en la comparación por referencia.
+        List<Money> montos = [new Money(300), new Money(-100), new Money(0)];
+        montos.Sort();
+
+        Assert.Equal([-100, 0, 300], montos.Select(m => m.Cents));
+    }
+
+    [Fact]
+    public void los_predicados_de_signo_dicen_lo_que_prometen()
+    {
+        Assert.True(new Money(-1).IsNegative);
+        Assert.False(Money.Zero.IsNegative);
+        Assert.False(new Money(1).IsNegative);
+
+        Assert.True(Money.Zero.IsZero);
+        Assert.False(new Money(1).IsZero);
+        Assert.False(new Money(-1).IsZero);
+    }
+
+    [Fact]
+    public void el_valor_absoluto_quita_el_signo_sin_tocar_la_cifra()
+    {
+        Assert.Equal(new Money(1205), new Money(-1205).Abs);
+        Assert.Equal(new Money(1205), new Money(1205).Abs);
+        Assert.Equal(Money.Zero, Money.Zero.Abs);
+    }
+
+    [Fact]
+    public void el_menos_unario_invierte_el_signo()
+    {
+        Assert.Equal(new Money(-500), -new Money(500));
+        Assert.Equal(new Money(500), -new Money(-500));
+        Assert.Equal(Money.Zero, -Money.Zero);
+    }
+
+    [Fact]
+    public void prorate_rechaza_una_lista_de_pesos_vacia()
+    {
+        Assert.Throws<ArgumentException>(() => new Money(100).Prorate([]));
+    }
+
+    [Fact]
+    public void la_suma_desbordada_lanza_en_vez_de_dar_la_vuelta()
+    {
+        // Sin `checked`, sumar al máximo daría un número negativo enorme y el
+        // dinero se convertiría en deuda sin que nada avisara.
+        Assert.Throws<OverflowException>(() => new Money(long.MaxValue) + new Money(1));
+        Assert.Throws<OverflowException>(() => new Money(long.MinValue) - new Money(1));
+        Assert.Throws<OverflowException>(() => Money.FromUnits(long.MaxValue));
     }
 }

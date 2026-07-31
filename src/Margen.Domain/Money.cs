@@ -189,6 +189,90 @@ public readonly record struct Money(long Cents) : IComparable<Money>
         return result;
     }
 
+    /// <summary>
+    /// Promedio ponderado exacto de varios montos.
+    /// </summary>
+    /// <remarks>
+    /// Se calcula como una sola división y no como suma de términos escalados.
+    /// Escalar cada monto por su peso y sumar los resultados redondea tres
+    /// veces y suma los tres errores; esto redondea una vez, al final. La
+    /// diferencia es de céntimos, y este es el número del que cuelga el
+    /// presupuesto recomendado del período siguiente.
+    ///
+    /// La longitud de <paramref name="weights"/> puede ser mayor que la de
+    /// <paramref name="values"/>: se usan los primeros y el denominador se
+    /// calcula sobre esos. Es lo que hace que 50/30/20 con solo dos períodos
+    /// cerrados sea 50/80 y 30/80, y no 50/100 y 30/100 con un tercio del
+    /// promedio inventado en cero.
+    /// </remarks>
+    public static Money WeightedAverage(IReadOnlyList<Money> values, IReadOnlyList<long> weights)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullException.ThrowIfNull(weights);
+
+        if (values.Count == 0)
+        {
+            throw new ArgumentException(
+                "No hay nada que promediar. Devolver cero sería inventar un promedio.",
+                nameof(values));
+        }
+
+        if (weights.Count < values.Count)
+        {
+            throw new ArgumentException(
+                "Faltan pesos para algunos de los valores.",
+                nameof(weights));
+        }
+
+        Int128 numerator = 0;
+        long denominator = 0;
+
+        for (int i = 0; i < values.Count; i++)
+        {
+            if (weights[i] < 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(weights),
+                    weights[i],
+                    "Un peso negativo invierte el promedio en silencio.");
+            }
+
+            numerator += (Int128)values[i].Cents * weights[i];
+            denominator = checked(denominator + weights[i]);
+        }
+
+        if (denominator == 0)
+        {
+            throw new ArgumentException(
+                "Los pesos suman cero: no hay forma de promediar.",
+                nameof(weights));
+        }
+
+        Int128 quotient = numerator / denominator;
+        Int128 remainder = numerator - (quotient * denominator);
+
+        if (Int128.Abs(remainder) * 2 >= denominator)
+        {
+            quotient += numerator < 0 ? -1 : 1;
+        }
+
+        return new Money(checked((long)quotient));
+    }
+
+    /// <summary>Suma una secuencia sin salirse de los enteros.</summary>
+    public static Money Sum(IEnumerable<Money> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        long total = 0;
+        foreach (Money value in values)
+        {
+            total = checked(total + value.Cents);
+        }
+
+        return new Money(total);
+    }
+
     public int CompareTo(Money other) => Cents.CompareTo(other.Cents);
 
     /// <summary>

@@ -25,6 +25,7 @@ app/          Flutter. Cliente iOS.
 src/          .NET. Servidor.
   Margen.Domain/          Entidades y dinero. Sin una sola referencia.
   Margen.Infrastructure/  EF Core, esquema y migraciones.
+  Margen.Budget/          Motor de presupuesto. Lógica pura, sin HTTP ni base.
   Margen.Api/             ASP.NET Core. Salud y autenticación.
   Margen.Worker/          Lector del buzón. Esqueleto hasta la Fase 6.
 tests/        Pruebas del servidor. Las de integración usan Postgres real.
@@ -99,8 +100,8 @@ Y se lee `git diff --cached` buscando secretos.
 |---|---|---|
 | 1 | Sistema visual, dominio, infraestructura | Cerrada (CR-001) |
 | 2 | Base del API, esquema, autenticación | Cerrada (CR-002) |
-| 3 | Motor de presupuesto | Siguiente |
-| 4 | Endpoints y contrato | |
+| 3 | Motor de presupuesto | Cerrada (CR-003) |
+| 4 | Endpoints y contrato | Siguiente |
 | 5 | Capa de datos en Flutter | |
 | 6 | Ingesta de correo, sin parser de banco | |
 | 7 | Parser del banco | Falta una muestra real |

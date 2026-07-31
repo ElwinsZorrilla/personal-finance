@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Una sola referencia, y a propósito. El motor no sabe que existe una base
+       de datos ni un servidor web ni un reloj: todo lo que necesita entra por
+       parámetro. Es lo que permite que un caso de borde cueste tres líneas de
+       prueba en vez de un contenedor. -->
+
+  <ItemGroup>
+    <ProjectReference Include="../Margen.Domain/Margen.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
