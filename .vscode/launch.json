@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "App con datos de prueba",
+      "request": "launch",
+      "type": "dart",
+      "program": "app/lib/main.dart",
+      "cwd": "app",
+      "args": ["--dart-define=USE_MOCKS=true"]
+    },
+    {
+      "name": "App contra el servidor",
+      "request": "launch",
+      "type": "dart",
+      "program": "app/lib/main.dart",
+      "cwd": "app",
+      "args": [
+        "--dart-define=USE_MOCKS=false",
+        "--dart-define=API_BASE_URL=https://finanzas.tudominio.com"
+      ]
+    },
+    {
+      "name": "App en release",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "program": "app/lib/main.dart",
+      "cwd": "app",
+      "args": ["--dart-define=USE_MOCKS=false"]
+    }
+  ]
+}

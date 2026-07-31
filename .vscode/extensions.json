@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "anthropic.claude-code",
+    "dart-code.dart-code",
+    "dart-code.flutter",
+    "ms-dotnettools.csdevkit",
+    "ms-azuretools.vscode-docker",
+    "tamasfe.even-better-toml",
+    "editorconfig.editorconfig"
+  ]
+}

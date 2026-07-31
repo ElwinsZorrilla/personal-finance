@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Compuerta 1 · Flutter",
+      "detail": "format, analyze y pruebas. Lo que bloquea el commit",
+      "type": "shell",
+      "command": "dart format --set-exit-if-changed . && flutter analyze --fatal-infos && flutter test --coverage",
+      "options": { "cwd": "${workspaceFolder}/app" },
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": ["$dart-analyze"],
+      "presentation": { "clear": true, "panel": "dedicated" }
+    },
+    {
+      "label": "Compuerta 1 · .NET",
+      "detail": "format, build en release y pruebas",
+      "type": "shell",
+      "command": "dotnet format --verify-no-changes && dotnet build --configuration Release && dotnet test",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "problemMatcher": ["$msCompile"],
+      "presentation": { "clear": true, "panel": "dedicated" }
+    },
+    {
+      "label": "Estado del loop",
+      "type": "shell",
+      "command": "cat docs/ESTADO.md",
+      "problemMatcher": [],
+      "presentation": { "clear": true, "reveal": "always" }
+    },
+    {
+      "label": "Revisar lo que va al commit",
+      "detail": "Se lee antes de cada commit, buscando secretos",
+      "type": "shell",
+      "command": "git diff --cached",
+      "problemMatcher": [],
+      "presentation": { "clear": true, "reveal": "always" }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "terminal.integrated.defaultProfile.windows": "Git Bash",
+
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  "editor.formatOnSave": true,
+  "editor.rulers": [80],
+  "[dart]": {
+    "editor.defaultFormatter": "Dart-Code.dart-code",
+    "editor.selectionHighlight": false,
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": "off"
+  },
+  "dart.lineLength": 80,
+  "dart.previewFlutterUiGuides": true,
+
+  "files.exclude": {
+    "**/.dart_tool": true,
+    "**/build": true,
+    "**/bin": true,
+    "**/obj": true,
+    "**/.gradle": true,
+    "**/Pods": true
+  },
+  "search.exclude": {
+    "**/coverage": true,
+    "**/*.g.dart": true,
+    "**/*.freezed.dart": true
+  },
+
+  "git.autofetch": true,
+  "git.confirmSync": false
+}
