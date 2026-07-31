@@ -1,0 +1,26 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- El formateo de dinero y de fechas depende de la cultura es-DO. Con
+         globalización invariante `es-DO` cae en silencio a la cultura
+         invariante y `RD$ 12,000` se convierte en otra cosa. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
+
+    <!-- Un aviso que nadie lee es un error que todavía no ocurrió. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+
+    <!-- El estilo lo verifica `dotnet format` en la compuerta 1. Exigirlo
+         además en la compilación duplica el mismo control y hace que
+         `dotnet ef migrations add` falle sobre su propio código generado. -->
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

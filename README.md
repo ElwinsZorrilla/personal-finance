@@ -22,7 +22,13 @@ app/          Flutter. Cliente iOS.
   lib/domain/   Modelos. Sin dependencias de Flutter.
   lib/design/   Tokens, tipografía, componentes.
   lib/features/ Pantallas.
-docs/         Sistema visual, decisiones, revisiones, deuda.
+src/          .NET. Servidor.
+  Margen.Domain/          Entidades y dinero. Sin una sola referencia.
+  Margen.Infrastructure/  EF Core, esquema y migraciones.
+  Margen.Api/             ASP.NET Core. Salud y autenticación.
+  Margen.Worker/          Lector del buzón. Esqueleto hasta la Fase 6.
+tests/        Pruebas del servidor. Las de integración usan Postgres real.
+docs/         Sistema visual, decisiones, revisiones, deuda, briefs, planes.
 infra/        Stack de Docker para el servidor.
 ```
 
@@ -44,6 +50,29 @@ flutter run \
 
 Ninguna URL ni credencial vive en el código fuente.
 
+## El servidor
+
+```bash
+dotnet build
+dotnet test
+```
+
+Las pruebas de integración levantan un PostgreSQL 16 en contenedor con
+Testcontainers: hace falta Docker corriendo. No hay base en memoria a propósito
+—no tiene `timestamptz` ni índices únicos, que es justo lo que se comprueba—.
+
+Para generar una migración:
+
+```bash
+dotnet ef migrations add <Nombre> \
+  --project src/Margen.Infrastructure \
+  --startup-project src/Margen.Infrastructure \
+  --output-dir Migrations
+```
+
+Ninguna URL ni credencial vive en el código fuente. El servidor las lee de
+variables de entorno; ver `infra/.env.example`.
+
 ## Antes de cada commit
 
 Desde `app/`:
@@ -54,6 +83,14 @@ flutter analyze --fatal-infos
 flutter test --coverage
 ```
 
+Desde la raíz:
+
+```bash
+dotnet format --verify-no-changes
+dotnet build --configuration Release
+dotnet test
+```
+
 Y se lee `git diff --cached` buscando secretos.
 
 ## Fases
@@ -61,8 +98,8 @@ Y se lee `git diff --cached` buscando secretos.
 | | | |
 |---|---|---|
 | 1 | Sistema visual, dominio, infraestructura | Cerrada (CR-001) |
-| 2 | Base del API, esquema, autenticación | Siguiente |
-| 3 | Motor de presupuesto | |
+| 2 | Base del API, esquema, autenticación | Cerrada (CR-002) |
+| 3 | Motor de presupuesto | Siguiente |
 | 4 | Endpoints y contrato | |
 | 5 | Capa de datos en Flutter | |
 | 6 | Ingesta de correo, sin parser de banco | |

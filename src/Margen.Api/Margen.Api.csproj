@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <!-- Las pruebas de integración levantan la aplicación en proceso con
+         WebApplicationFactory, y para eso necesitan ver la clase Program. -->
+    <InternalsVisibleTo Include="Margen.Api.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margen.Infrastructure/Margen.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

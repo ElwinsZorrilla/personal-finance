@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Margen.Api/Margen.Api.csproj" />
+    <Project Path="src/Margen.Domain/Margen.Domain.csproj" />
+    <Project Path="src/Margen.Infrastructure/Margen.Infrastructure.csproj" />
+    <Project Path="src/Margen.Worker/Margen.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Margen.Api.Tests/Margen.Api.Tests.csproj" />
+    <Project Path="tests/Margen.Domain.Tests/Margen.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

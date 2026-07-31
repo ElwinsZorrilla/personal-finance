@@ -1,0 +1,20 @@
+# Lo que no tiene por qué llegar al contexto de compilación. Además de acortar
+# el envío, evita que un .env local termine dentro de una imagen.
+
+**/.git
+**/.gitignore
+**/.vscode
+**/bin
+**/obj
+**/TestResults
+**/.dart_tool
+app/
+docs/
+infra/
+tests/
+**/.env
+**/.env.*
+**/*.user
+**/*.log
+LOOP.md
+README.md

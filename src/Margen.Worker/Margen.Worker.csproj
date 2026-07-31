@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <!-- El esqueleto del worker existe desde ahora porque el compose de la
+       Fase 1 ya declara el servicio. Su trabajo —leer el buzón— es la Fase 6. -->
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Margen.Infrastructure/Margen.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

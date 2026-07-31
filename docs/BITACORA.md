@@ -7,4 +7,12 @@ Una línea por iteración cerrada.
             CR-001 aprobada tras 2 vueltas · 6 Majors corregidos
             pendiente: correr la compuerta 1, empaquetar fuentes, responder ADR-001
             deuda abierta: m6 (fase 5), m7 (fase 4), m8 (fase 9)
+
+2026-07-31 · FASE-2 · base del API, esquema, autenticación de dispositivo
+            CR-002 aprobada tras 2 vueltas · 3 Majors corregidos
+            compuerta 1 en verde: format sin cambios, Release sin avisos,
+            59 pruebas · las 41 de integración sobre Postgres 16 en contenedor
+            el repositorio no tenía git: la fase 1 quedó como commit base
+            pendiente: añadir el remoto origin, correr la compuerta 1 de Flutter
+            deuda abierta: m9–m12 (fase 4), m13 (fase 6)
 ```

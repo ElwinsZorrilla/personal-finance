@@ -1,0 +1,101 @@
+# Reglas que `dotnet format --verify-no-changes` comprueba en la compuerta 1.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.{cs,csx}]
+indent_size = 4
+
+[*.{csproj,props,targets,json,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+
+# ---------- Organización ----------
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+csharp_using_directive_placement = outside_namespace:warning
+csharp_style_namespace_declarations = file_scoped:warning
+
+# ---------- Estilo del lenguaje ----------
+csharp_prefer_braces = true:silent
+csharp_style_var_for_built_in_types = false:silent
+csharp_style_var_when_type_is_apparent = true:silent
+csharp_style_expression_bodied_methods = when_on_single_line:silent
+csharp_style_expression_bodied_properties = true:silent
+csharp_style_prefer_primary_constructors = true:silent
+
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+dotnet_style_readonly_field = true:warning
+dotnet_style_object_initializer = true:silent
+dotnet_style_collection_initializer = true:silent
+dotnet_style_prefer_conditional_expression_over_assignment = false:silent
+dotnet_style_prefer_conditional_expression_over_return = false:silent
+
+# ---------- Nombres ----------
+# El orden importa: gana la primera regla que encaja. Las constantes y los
+# campos estáticos van antes que la regla del guion bajo, que si no se los
+# tragaría y pediría `_MaxAttempts`.
+dotnet_naming_style.pascal.capitalization = pascal_case
+dotnet_naming_style.guion_camel.required_prefix = _
+dotnet_naming_style.guion_camel.capitalization = camel_case
+
+dotnet_naming_rule.constantes_en_pascal.severity = warning
+dotnet_naming_rule.constantes_en_pascal.symbols = constantes
+dotnet_naming_rule.constantes_en_pascal.style = pascal
+dotnet_naming_symbols.constantes.applicable_kinds = field
+dotnet_naming_symbols.constantes.applicable_accessibilities = *
+dotnet_naming_symbols.constantes.required_modifiers = const
+
+dotnet_naming_rule.estaticos_en_pascal.severity = warning
+dotnet_naming_rule.estaticos_en_pascal.symbols = campos_estaticos
+dotnet_naming_rule.estaticos_en_pascal.style = pascal
+dotnet_naming_symbols.campos_estaticos.applicable_kinds = field
+dotnet_naming_symbols.campos_estaticos.applicable_accessibilities = *
+dotnet_naming_symbols.campos_estaticos.required_modifiers = static
+
+dotnet_naming_rule.campos_privados_con_guion.severity = warning
+dotnet_naming_rule.campos_privados_con_guion.symbols = campos_privados
+dotnet_naming_rule.campos_privados_con_guion.style = guion_camel
+dotnet_naming_symbols.campos_privados.applicable_kinds = field
+dotnet_naming_symbols.campos_privados.applicable_accessibilities = private
+
+dotnet_naming_rule.tipos_en_pascal.severity = warning
+dotnet_naming_rule.tipos_en_pascal.symbols = tipos
+dotnet_naming_rule.tipos_en_pascal.style = pascal
+dotnet_naming_symbols.tipos.applicable_kinds = class,struct,interface,enum,delegate
+
+# ---------- Análisis ----------
+# Los nombres de este proyecto están en español; el analizador de ortografía
+# no tiene diccionario para eso.
+dotnet_diagnostic.CA1707.severity = none
+# Los identificadores de prueba usan guion bajo para que la frase se lea.
+dotnet_diagnostic.CA1861.severity = suggestion
+
+[tests/**/*.cs]
+# Los métodos de prueba se nombran como una frase: `las_23_30_no_cambian_de_dia`.
+dotnet_naming_rule.tipos_en_pascal.severity = none
+
+# xUnit nombra las definiciones de colección `<Algo>Collection`. CA1711 reserva
+# ese sufijo para tipos que son colecciones; aquí manda la convención del marco
+# de pruebas, que es lo que lee quien busca la definición.
+dotnet_diagnostic.CA1711.severity = none
+
+# El generador de EF Core produce este código y nadie lo edita a mano. Exigirle
+# las reglas del proyecto rompe `dotnet ef migrations add` sin ganar nada: la
+# corrección se perdería en la siguiente migración.
+[**/Migrations/**.cs]
+generated_code = true

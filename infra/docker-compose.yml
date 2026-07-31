@@ -38,6 +38,10 @@ services:
       # había saltos y deja la cadena a merced de cómo los tolere el driver.
       ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};SSL Mode=Disable;Include Error Detail=false"
       DataProtection__KeyRing: /keys
+      # Sin este valor el alta de dispositivos responde 503 y no registra nada.
+      # Es a propósito: un servidor recién desplegado no puede quedar aceptando
+      # el teléfono de quien pase por ahí.
+      Auth__EnrollmentCode: ${AUTH_ENROLLMENT_CODE}
       TZ: America/Santo_Domingo
     volumes:
       - dataprotection:/keys

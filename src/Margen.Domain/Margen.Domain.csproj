@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Sin una sola referencia. El dominio no sabe que existe una base de datos
+       ni un servidor web; por eso se puede probar sin levantar nada. -->
+
+</Project>
