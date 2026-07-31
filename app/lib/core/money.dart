@@ -1,5 +1,3 @@
-import 'package:intl/intl.dart';
-
 /// Formato en el que un origen externo entrega los montos.
 enum AmountFormat {
   /// `2,450.00` — coma como separador de miles. Formato del banco y del CSV.
@@ -112,10 +110,22 @@ final class Money implements Comparable<Money> {
 
 /// Formateo para República Dominicana: `RD$` antepuesto, coma como separador
 /// de miles, punto decimal.
+///
+/// No usa `NumberFormat`. Dos motivos, y los dos son defectos que se vieron
+/// aquí antes de que llegaran a una pantalla:
+///
+/// **Los separadores no se heredan de la configuración regional.** `es_DO` en
+/// los datos de ICU agrupa con punto y decimaliza con coma, al estilo europeo:
+/// `RD$ 12.000`. En República Dominicana eso se lee «doce». La convención real
+/// del país —y la que usan los bancos en sus correos— es coma para miles y
+/// punto para decimales, así que se escribe aquí y no se pide prestada.
+///
+/// **La cifra no pasa por punto flotante.** La versión anterior hacía
+/// `cents / 100` para dárselo al formateador, que es exactamente lo que la
+/// regla de este proyecto prohíbe: la conversión a texto es el último paso y se
+/// hace desde el entero. Con montos grandes, esa división pierde precisión en
+/// el último centavo y nadie lo nota.
 abstract final class MoneyFormat {
-  static final _whole = NumberFormat('#,##0', 'es_DO');
-  static final _precise = NumberFormat('#,##0.00', 'es_DO');
-
   /// Formato de pantalla: `RD$ 12,000`. Los centavos se omiten cuando son
   /// cero porque en la vista de decisión sobran; la vista de detalle usa
   /// [exact].
@@ -126,16 +136,45 @@ abstract final class MoneyFormat {
   static String display(Money m) => '${_sign(m)}RD\$ ${bare(m)}';
 
   /// Formato de auditoría: siempre dos decimales.
-  static String exact(Money m) =>
-      '${_sign(m)}RD\$ ${_precise.format(m.cents.abs() / 100)}';
+  static String exact(Money m) => '${_sign(m)}RD\$ ${_render(m, always: true)}';
 
   /// Solo la cifra en valor absoluto, sin símbolo ni signo. Para columnas
   /// donde la moneda ya está en el encabezado.
-  static String bare(Money m) {
+  static String bare(Money m) => _render(m, always: false);
+
+  /// Construye el texto desde el entero, sin pasar por `double`.
+  static String _render(Money m, {required bool always}) {
     final abs = m.cents.abs();
-    return abs.remainder(100) == 0
-        ? _whole.format(abs ~/ 100)
-        : _precise.format(abs / 100);
+    final units = abs ~/ 100;
+    final hundredths = abs.remainder(100);
+
+    final grouped = _group(units);
+
+    if (!always && hundredths == 0) {
+      return grouped;
+    }
+
+    return '$grouped.${hundredths.toString().padLeft(2, '0')}';
+  }
+
+  /// Agrupa de tres en tres con coma, desde la derecha.
+  static String _group(int units) {
+    final digits = units.toString();
+    if (digits.length <= 3) return digits;
+
+    final buffer = StringBuffer();
+    final firstGroup = digits.length % 3;
+
+    if (firstGroup > 0) {
+      buffer.write(digits.substring(0, firstGroup));
+    }
+
+    for (var i = firstGroup; i < digits.length; i += 3) {
+      if (buffer.isNotEmpty) buffer.write(',');
+      buffer.write(digits.substring(i, i + 3));
+    }
+
+    return buffer.toString();
   }
 
   static String _sign(Money m) => m.isNegative ? '-' : '';

@@ -1,5 +1,3 @@
-import 'dart:ui' show FontFeature;
-
 import 'package:flutter/widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -31,7 +29,10 @@ abstract final class Type {
 
   static const _tabular = [FontFeature.tabularFigures()];
 
-  static TextStyle display(double size, {FontWeight weight = FontWeight.w600}) =>
+  static TextStyle display(
+    double size, {
+    FontWeight weight = FontWeight.w600,
+  }) =>
       GoogleFonts.bricolageGrotesque(
         fontSize: size,
         fontWeight: weight,
@@ -70,7 +71,8 @@ abstract final class Type {
 
   /// Etiqueta de sección. Versalita ancha: separa bloques sin necesidad de
   /// líneas ni tarjetas.
-  static TextStyle eyebrow({Color color = Tone.muted}) => GoogleFonts.ibmPlexMono(
+  static TextStyle eyebrow({Color color = Tone.muted}) =>
+      GoogleFonts.ibmPlexMono(
         fontSize: 11,
         fontWeight: FontWeight.w500,
         height: 1.0,

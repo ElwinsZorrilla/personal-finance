@@ -5,7 +5,7 @@ una columna «Se paga en».
 
 | # | Origen | Qué falta | Por qué se pospuso | Se paga en |
 |---|---|---|---|---|
-| m6 | CR-001 | La compuerta 1 no incluye compilación release en cada vuelta | Compilar release en cada vuelta alarga el ciclo de minutos a decenas de minutos | Fase 5, cuando exista pipeline |
+| m6 | CR-001 | La compuerta 1 no incluye compilación release en cada vuelta | Compilar release en cada vuelta alarga el ciclo de minutos a decenas de minutos | Fase 12, con el despliegue. En .NET ya se compila Release en cada vuelta desde la Fase 2 |
 | m7 | CR-001 | `_RiskNote` usa `projectedDepletion!` protegido por el llamador | Hoy hay un solo llamador y es correcto | Fase 5, al conectar la pantalla de Presupuesto a datos reales. La Fase 4 no tocó `app/` |
 | m8 | CR-001 | `infra/backup.sh` usa `sleep 86400` y deriva | La deriva es de segundos por ciclo, sin efecto en un respaldo diario | Fase 12, junto con la prueba de restauración |
 | — | Fase 1 | `MockRepository` sigue en el árbol de release aunque `Env.useMocks` sea `false` | El compilador de Dart elimina el código muerto con `bool.fromEnvironment` constante; falta confirmarlo midiendo el binario | Fase 5 |
@@ -19,3 +19,6 @@ una columna «Se paga en».
 | m16 | CR-004 | El panel dispara cinco consultas extra por la base histórica: una por período cerrado más el conteo | Con un usuario y tres períodos son milisegundos; optimizarlo ahora sería adivinar dónde duele | Fase 12, con medición real |
 | m17 | CR-004 | La redistribución persiste `Adjustment ±= monto` en vez de los valores que devuelve el motor. Equivalentes hoy | Guardar el ajuste aparte es lo que deja el rastro de qué se movió; unificarlo pide rediseñar el registro de cambios | Fase 10, con el cierre de período |
 | m18 | CR-004 | `Page<T>.NextCursor` siempre es nulo: la paginación real no existe | Con un año de movimientos personales no se llega al tope de 100 por página | Fase 10 |
+| m19 | CR-005 | El contraste 4.5:1 y el respeto a la animación reducida no se han comprobado en ningún widget | CR-005 cubrió el núcleo, no las pantallas; comprobarlas con datos de prueba mediría el mock, no el producto | Fase 5, cuando las pantallas consuman datos reales |
+| m20 | CR-005 | `intl` sigue como dependencia aunque `core/` ya no la use | La arrastra `flutter_localizations`; quitarla exige comprobar qué más la necesita | Fase 5, al montar la capa de datos |
+

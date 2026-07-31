@@ -86,7 +86,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                   animation: _entrance,
                   child: SafeToSpend(
                     amount: s.safeToSpend,
-                    caption: 'seguros hasta el ${DateLabel.long(s.period.end)}, '
+                    caption:
+                        'seguros hasta el ${DateLabel.long(s.period.end)}, '
                         'tu próximo ingreso',
                     tone: s.safeToSpend.isNegative ? Signal.risk : null,
                   ),
@@ -131,8 +132,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 for (final c in s.commitments) ReservedRow(commitment: c),
                 const SizedBox(height: Space.xxl),
                 const SectionLabel('Movimientos recientes'),
-                for (final tx in s.recent.take(6))
-                  TransactionTile(tx: tx),
+                for (final tx in s.recent.take(6)) TransactionTile(tx: tx),
               ],
             ),
           ),

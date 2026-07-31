@@ -33,7 +33,6 @@ class TransactionTile extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: Space.md),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
               child: Column(
@@ -75,7 +74,6 @@ class TransactionTile extends StatelessWidget {
             MoneyText(
               tx.amount,
               size: 14,
-              weight: FontWeight.w500,
               color: amountColor,
               showSign: isCredit,
             ),
@@ -98,7 +96,7 @@ class _Flag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
         borderRadius: Radii.brSm,
-        border: Border.all(color: tone.withValues(alpha: 0.45), width: 1),
+        border: Border.all(color: tone.withValues(alpha: 0.45)),
       ),
       child: Text(
         text,

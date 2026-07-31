@@ -18,9 +18,19 @@ class SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: Space.md),
       child: Row(
         children: [
-          Text(text.toUpperCase(), style: Type.eyebrow(color: color ?? Tone.muted)),
+          Text(
+            text.toUpperCase(),
+            style: Type.eyebrow(color: color ?? Tone.muted),
+          ),
           const SizedBox(width: Space.md),
-          const Expanded(child: Divider(color: Tone.line, height: 1)),
+
+          // Una línea de un píxel, no un `Divider`: ese vive en Material y
+          // este árbol no importa Material. El sistema visual se dibuja
+          // entero sobre `widgets`, que es lo que permite que no haya un solo
+          // color fuera de `Tone`.
+          const Expanded(
+            child: SizedBox(height: 1, child: ColoredBox(color: Tone.line)),
+          ),
           if (trailing != null) ...[
             const SizedBox(width: Space.md),
             trailing!,

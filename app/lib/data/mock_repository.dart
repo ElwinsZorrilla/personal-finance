@@ -13,7 +13,7 @@ abstract final class MockRepository {
   );
 
   /// Estado sano: el dinero alcanza hasta el próximo ingreso. Sin color.
-  static DashboardSnapshot healthy() => _build(depletion: null);
+  static DashboardSnapshot healthy() => _build();
 
   /// Estado tensionado: al ritmo actual el dinero se agota tres días antes.
   static DashboardSnapshot strained() =>
@@ -48,45 +48,45 @@ abstract final class MockRepository {
           priority: Priority.essential,
           dueOn: DateTime(2026, 8, 18),
         ),
-        Commitment(
+        const Commitment(
           label: 'Ahorro',
-          amount: const Money.fromUnits(8000),
+          amount: Money.fromUnits(8000),
           priority: Priority.important,
         ),
-        Commitment(
+        const Commitment(
           label: 'Fondo de seguridad',
-          amount: const Money.fromUnits(5000),
+          amount: Money.fromUnits(5000),
           priority: Priority.important,
         ),
       ],
       categories: [
-        CategoryLine(
+        const CategoryLine(
           name: 'Supermercado',
           priority: Priority.essential,
-          budget: const Money.fromUnits(14400),
-          spent: const Money.fromUnits(9100),
-          projected: const Money.fromUnits(13800),
+          budget: Money.fromUnits(14400),
+          spent: Money.fromUnits(9100),
+          projected: Money.fromUnits(13800),
         ),
-        CategoryLine(
+        const CategoryLine(
           name: 'Restaurantes',
           priority: Priority.flexible,
-          budget: const Money.fromUnits(8000),
-          spent: const Money.fromUnits(6500),
-          projected: const Money.fromUnits(11300),
+          budget: Money.fromUnits(8000),
+          spent: Money.fromUnits(6500),
+          projected: Money.fromUnits(11300),
         ),
-        CategoryLine(
+        const CategoryLine(
           name: 'Combustible',
           priority: Priority.important,
-          budget: const Money.fromUnits(6000),
-          spent: const Money.fromUnits(3200),
-          projected: const Money.fromUnits(5900),
+          budget: Money.fromUnits(6000),
+          spent: Money.fromUnits(3200),
+          projected: Money.fromUnits(5900),
         ),
-        CategoryLine(
+        const CategoryLine(
           name: 'Entretenimiento',
           priority: Priority.optional,
-          budget: const Money.fromUnits(3000),
-          spent: const Money.fromUnits(900),
-          projected: const Money.fromUnits(2000),
+          budget: Money.fromUnits(3000),
+          spent: Money.fromUnits(900),
+          projected: Money.fromUnits(2000),
         ),
       ],
       attention: [
@@ -166,7 +166,7 @@ abstract final class MockRepository {
           id: 't6',
           merchant: 'Pago de tarjeta',
           amount: const Money.fromUnits(18000),
-          occurredAt: DateTime(2026, 8, 2, 11, 0),
+          occurredAt: DateTime(2026, 8, 2, 11),
           kind: TxKind.payment,
           status: TxStatus.posted,
           source: TxSource.email,

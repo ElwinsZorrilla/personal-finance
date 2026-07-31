@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-import '../../core/money.dart';
 import '../../core/period.dart';
 import '../../domain/models.dart';
 import '../tokens.dart';
@@ -23,7 +22,7 @@ class ReservedRow extends StatelessWidget {
           Expanded(
             child: Text(
               commitment.label,
-              style: Type.body(14, color: Tone.bone),
+              style: Type.body(14),
               overflow: TextOverflow.ellipsis,
             ),
           ),

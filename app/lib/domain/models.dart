@@ -116,7 +116,15 @@ class CategoryLine {
   bool get willOverrun => projected > budget;
 }
 
-enum AttentionKind { unparsedEmail, lowConfidence, possibleDuplicate, unusualAmount, overBudget, subscriptionChange, fundingRisk }
+enum AttentionKind {
+  unparsedEmail,
+  lowConfidence,
+  possibleDuplicate,
+  unusualAmount,
+  overBudget,
+  subscriptionChange,
+  fundingRisk
+}
 
 class AttentionItem {
   const AttentionItem({

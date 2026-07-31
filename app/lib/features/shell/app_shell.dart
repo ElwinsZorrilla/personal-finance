@@ -69,7 +69,7 @@ class _AppShellState extends State<AppShell> {
               icon: Badge(
                 isLabelVisible: pending > 0,
                 backgroundColor: Signal.risk,
-                label: Text('$pending', style: Type.data(9, color: Tone.bone)),
+                label: Text('$pending', style: Type.data(9)),
                 child: const Icon(Icons.rule_folder_outlined),
               ),
               selectedIcon: const Icon(Icons.rule_folder),

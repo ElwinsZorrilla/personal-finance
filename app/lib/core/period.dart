@@ -1,5 +1,3 @@
-import 'package:intl/intl.dart';
-
 /// Período presupuestario. No va del 1 al 30: va de un ingreso al siguiente,
 /// porque ese es el ciclo real del dinero de una persona asalariada.
 class BudgetPeriod {
@@ -48,14 +46,68 @@ class BudgetPeriod {
   int get hashCode => Object.hash(start, end);
 }
 
+/// Fechas en prosa, en español.
+///
+/// No usa `DateFormat`. Con una configuración regional que no sea la de por
+/// defecto, `intl` exige llamar antes a `initializeDateFormatting` y, si no se
+/// llama, **lanza al formatear**. Estos tres formatos se invocan al pintar el
+/// panel, así que el síntoma no habría sido una fecha fea: habría sido una
+/// pantalla en blanco.
+///
+/// La app tiene un solo idioma y un solo país. Doce nombres de mes y siete de
+/// día escritos aquí no pueden faltar, no dependen de que alguien recuerde
+/// inicializar nada y no arrastran datos regionales al binario.
 abstract final class DateLabel {
-  static final _dayMonth = DateFormat("d 'de' MMMM", 'es_DO');
-  static final _shortDay = DateFormat('d MMM', 'es_DO');
-  static final _weekday = DateFormat('EEE d MMM', 'es_DO');
+  static const _months = [
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
+  ];
 
-  static String long(DateTime d) => _dayMonth.format(d);
-  static String short(DateTime d) => _shortDay.format(d);
-  static String weekday(DateTime d) => _weekday.format(d);
+  static const _monthsShort = [
+    'ene',
+    'feb',
+    'mar',
+    'abr',
+    'may',
+    'jun',
+    'jul',
+    'ago',
+    'sep',
+    'oct',
+    'nov',
+    'dic',
+  ];
+
+  /// `DateTime.weekday` va de 1 (lunes) a 7 (domingo).
+  static const _weekdaysShort = [
+    'lun',
+    'mar',
+    'mié',
+    'jue',
+    'vie',
+    'sáb',
+    'dom',
+  ];
+
+  /// `9 de agosto`.
+  static String long(DateTime d) => '${d.day} de ${_months[d.month - 1]}';
+
+  /// `9 ago`.
+  static String short(DateTime d) => '${d.day} ${_monthsShort[d.month - 1]}';
+
+  /// `dom 9 ago`.
+  static String weekday(DateTime d) =>
+      '${_weekdaysShort[d.weekday - 1]} ${short(d)}';
 
   /// `faltan 12 días` / `falta 1 día` / `último día`.
   static String countdown(int days) => switch (days) {

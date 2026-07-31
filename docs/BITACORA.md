@@ -31,4 +31,14 @@ Una línea por iteración cerrada.
             deuda m9, m10, m11 y m12 pagada
             la compilación rechazó Microsoft.OpenApi 2.0.0 por vulnerabilidad
             deuda abierta: m16 (fase 12), m17 (fase 10), m18 (fase 10)
+
+2026-07-31 · PASO CERO DE LA FASE 5 · la compuerta 1 de Flutter, por fin
+            CR-005 aprobada · 3 Blockers y 1 Major en el árbol de la Fase 1
+            se encontró Flutter 3.44.5 en C:\srclutter, fuera del PATH
+            el árbol no compilaba: SectionLabel usaba Divider sin Material
+            MoneyFormat escribía RD$ 12.000 por confiar en es_DO de ICU
+            DateLabel lanzaba al pintar por falta de initializeDateFormatting
+            51 pruebas · core/ al 98 %, domain/ al 84 %
+            fuentes SIL OFL descargadas y versionadas
+            deuda abierta: m19 (fase 5), m20 (fase 5)
 ```

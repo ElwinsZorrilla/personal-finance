@@ -35,9 +35,8 @@ class MargenApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       home: AppShell(
-        snapshot: Env.useMocks
-            ? MockRepository.strained()
-            : MockRepository.healthy(),
+        snapshot:
+            Env.useMocks ? MockRepository.strained() : MockRepository.healthy(),
       ),
     );
   }
