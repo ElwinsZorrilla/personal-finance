@@ -1,9 +1,9 @@
 # Estado
 
-Fase: 3 — Motor de presupuesto
-Rama: fase/3-motor-presupuesto
-Estado: por empezar
-Paso: brief
+Fase: 4 — Endpoints y contrato
+Rama: fase/4-endpoints
+Estado: en curso
+Paso: plan
 Vuelta: 0 de 3
 Compuerta 1: sin ejecutar
 Revisión: —
@@ -12,43 +12,52 @@ Bloqueo: —
 
 ## Criterios de esta fase
 
-- [ ] período de ingreso a ingreso, no de día 1 a 30
-- [ ] `DineroSeguro = líquido − obligaciones pendientes − reserva de tarjetas − ahorro comprometido − fondo de seguridad − retenciones`
-- [ ] disponible diario, con prueba de que el último día no divide por cero
-- [ ] base histórica 50 / 30 / 20
-- [ ] proyección de cierre y desviación de ritmo
-- [ ] redistribución que nunca toca prioridad 1 ni 2, con prueba de que recortar alquiler falla
-- [ ] devolución que reduce el gasto de su categoría original
-- [ ] pago de tarjeta que mueve saldo y no crea gasto
-- [ ] cobertura mínima 90 % en el proyecto del motor
+- [ ] transacciones, registro rápido, presupuesto, revisión, reglas, correos entrantes, conciliación, notificaciones
+- [ ] OpenAPI generado y versionado en `docs/api/openapi.json`
+- [ ] errores en formato ProblemDetails, ningún 500 con traza al cliente
+- [ ] límite de peticiones en autenticación y en el registro rápido
+- [ ] pruebas de integración sobre Postgres real en contenedor
+- [ ] deuda m9, m10, m11 y m12 de CR-002 pagada
 
 ## Siguiente acción
 
-Escribir el brief de la Fase 3 en `docs/briefs/FASE-3.md`.
+Escribir `docs/planes/FASE-4.md` y empezar por el agregador entre la base y el
+motor, que es la única pieza nueva con lógica y donde está el riesgo de la fase.
 
 ## Lo hecho
 
-Fase 2 cerrada. CR-002 aprobada tras 2 vueltas, 3 Majors corregidos.
-Compuerta 1 en verde: `dotnet format --verify-no-changes` sin cambios,
-`dotnet build -c Release` con 0 avisos, 59 pruebas pasando. Las 41 de
-integración corren contra PostgreSQL 16 real en contenedor.
+| Fase | Estado | Revisión | Pruebas |
+|---|---|---|---|
+| 1 · Sistema visual, dominio, infraestructura | Cerrada | CR-001 | compuerta 1 de Flutter sin correr |
+| 2 · Base del API, esquema, autenticación | Cerrada | CR-002 | 41 de integración sobre Postgres 16 |
+| 3 · Motor de presupuesto | Cerrada | CR-003 | 101, cobertura 100 % líneas y ramas |
 
-Lo que la Fase 3 hereda y puede usar:
+Total en la solución: **185 pruebas**, compuerta 1 en verde.
 
-- `Margen.Domain.Money` — entero de centavos, con `Scale(num, den)` por
-  fracción exacta y `Prorate(pesos)` por resto mayor. Es lo que reparte el
-  50 / 30 / 20 sin perder un centavo.
-- `Transaction.SpendingEffect` — aporte con signo al gasto. La devolución ya
-  resta; el pago de tarjeta y la transferencia ya valen cero.
-- `Priority` con los cuatro niveles. La redistribución tiene que respetar 1 y 2.
-- Esquema completo en Postgres: períodos, presupuestos por categoría, pagos
-  recurrentes.
+Lo que la Fase 4 hereda y debe usar sin reimplementar:
+
+- `Margen.Budget` entero. El cliente no calcula y el API tampoco: el API
+  consulta, arma las entradas del motor y devuelve lo que el motor responde.
+- `Outcome<T>`. Un resultado que no es `Computed` se serializa como campo nulo
+  con su motivo, nunca como cero.
+- `SpendingLedger.Summarize` **rechaza** una lista con el mismo
+  `TransactionId` repetido. Un join que multiplique filas hará fallar el
+  endpoint, que es lo que debe pasar.
+- La autenticación por token opaco y las políticas de alcance de la Fase 2.
+
+## Pendiente que no es de esta fase
+
+- **Relanzar la revisión adversarial del motor** (m15 en `DEUDA.md`). La de la
+  Fase 3 falló entera por límite de sesión y CR-003 la respalda un solo lector.
+  Conviene antes de fusionar `fase/3-motor-presupuesto` a `main`.
+- **Compuerta 1 de Flutter**, sin correr desde la Fase 1: no hay toolchain en
+  esta máquina.
+- **ADR-001**, sin responder. No bloquea hasta la Fase 11.
+- El merge a `main` de las fases 2 y 3 lo hace el humano. Las ramas están
+  publicadas.
 
 ## Notas de entorno
 
-- El repositorio no tenía git inicializado. Se creó con la Fase 1 como commit
-  base en `main`. **Falta añadir el remoto `origin`**: sin él no se puede hacer
-  push de la rama, y el merge a `main` lo hace el humano.
-- No hay toolchain de Flutter en esta máquina: la compuerta 1 de Flutter sigue
-  sin correr desde la Fase 1. La Fase 3 tampoco toca `app/`.
-- Hay .NET 10.0.204 y Docker 29.5.3 en funcionamiento.
+- Remoto `origin` configurado a `github.com/ElwinsZorrilla/personal-finance`.
+  Ramas publicadas: `main`, `fase/2-base-api`, `fase/3-motor-presupuesto`.
+- .NET 10.0.204 y Docker 29.5.3 en funcionamiento. Sin toolchain de Flutter.
