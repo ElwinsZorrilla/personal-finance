@@ -47,30 +47,68 @@ public static class SampleCapture
         ArgumentNullException.ThrowIfNull(args);
 
         var options = services.GetRequiredService<IOptions<MailboxOptions>>().Value;
+        var config = services.GetRequiredService<IConfiguration>();
 
         if (!options.IsConfigured)
         {
+            // Se dice cuál falta, no «falta configuración». Con cuatro
+            // variables, «falta alguna» obliga a revisarlas todas.
+            Console.Error.WriteLine("No se puede capturar: falta configuración del buzón.");
+            Console.Error.WriteLine();
+
+            Report("Imap__Host", options.Host);
+            Report("Imap__User", options.User);
+            Report("Imap__Password", options.Password, secret: true);
+            Report("Imap__AllowedSenders", options.AllowedSenders);
+
+            Console.Error.WriteLine();
             Console.Error.WriteLine(
-                "Falta configurar el buzón. Hacen falta Imap__Host, Imap__User, "
-                + "Imap__Password e Imap__AllowedSenders.");
-            Console.Error.WriteLine("Ver docs/gmail.md.");
+                "Ponlas en infra/.env —que está en .gitignore— o en el entorno.");
+            Console.Error.WriteLine("Los pasos completos están en docs/gmail.md.");
             return 1;
         }
 
         string destino = ResolveOutputDirectory(args);
         Directory.CreateDirectory(destino);
 
-        var redactor = new Redactor(
-            RedactionSettings.Of(Environment.GetEnvironmentVariable("Muestras__DatosPersonales")));
+        string? personales = config["Muestras:DatosPersonales"];
+        var redactor = new Redactor(RedactionSettings.Of(personales));
+
+        if (string.IsNullOrWhiteSpace(personales))
+        {
+            // No se aborta: las reglas por patrón siguen funcionando sin esto.
+            // Pero conviene decirlo, porque el nombre es justo lo que ninguna
+            // expresión regular puede adivinar.
+            Console.WriteLine(
+                "AVISO: no se dio Muestras__DatosPersonales. Tu nombre no se "
+                + "quitará de las muestras salvo que coincida con otra regla.");
+            Console.WriteLine();
+        }
 
         Console.WriteLine($"Conectando a {options.Host}:{options.Port} como {options.User}…");
 
         using var client = new ImapClient();
 
-        await client.ConnectAsync(
-            options.Host,
-            options.Port,
-            MailKit.Security.SecureSocketOptions.SslOnConnect).ConfigureAwait(false);
+        // Los tres fallos de conexión se traducen a una frase cada uno. Una
+        // traza de MailKit dice dónde reventó, no qué hacer.
+        try
+        {
+            await client.ConnectAsync(
+                options.Host,
+                options.Port,
+                MailKit.Security.SecureSocketOptions.SslOnConnect).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is System.Net.Sockets.SocketException
+            or IOException
+            or MailKit.Security.SslHandshakeException)
+        {
+            Console.Error.WriteLine($"No se pudo conectar a {options.Host}:{options.Port}.");
+            Console.Error.WriteLine($"  {ex.Message}");
+            Console.Error.WriteLine();
+            Console.Error.WriteLine("Comprueba el host y el puerto, y que IMAP esté activado");
+            Console.Error.WriteLine("en la configuración de Gmail. Ver docs/gmail.md.");
+            return 1;
+        }
 
         try
         {
@@ -79,10 +117,12 @@ public static class SampleCapture
         catch (MailKit.Security.AuthenticationException)
         {
             // El fallo más frecuente con Gmail, con mucha diferencia.
-            Console.Error.WriteLine(
-                "Gmail rechazó la contraseña. Con verificación en dos pasos activa, "
-                + "la contraseña normal no sirve para IMAP: hace falta una "
-                + "contraseña de aplicación. Ver docs/gmail.md.");
+            Console.Error.WriteLine("Gmail rechazó la contraseña.");
+            Console.Error.WriteLine();
+            Console.Error.WriteLine("Con verificación en dos pasos activa, la contraseña normal");
+            Console.Error.WriteLine("no sirve para IMAP: hace falta una contraseña de");
+            Console.Error.WriteLine("aplicación, y va sin los espacios con que Google la enseña.");
+            Console.Error.WriteLine("Ver docs/gmail.md.");
             return 1;
         }
 
@@ -139,6 +179,23 @@ public static class SampleCapture
         Console.WriteLine("largas de dígitos— y tu banco puede poner algo que no previó.");
 
         return 0;
+    }
+
+    /// <summary>
+    /// Dice si una variable está puesta, sin enseñar su valor si es secreta.
+    /// </summary>
+    private static void Report(string name, string value, bool secret = false)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            Console.Error.WriteLine($"  FALTA  {name}");
+            return;
+        }
+
+        Console.Error.WriteLine(
+            secret
+                ? $"  puesta {name} ({value.Length} caracteres)"
+                : $"  puesta {name} = {value}");
     }
 
     /// <summary>
