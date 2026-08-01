@@ -26,6 +26,7 @@ src/          .NET. Servidor.
   Margen.Domain/          Entidades y dinero. Sin una sola referencia.
   Margen.Infrastructure/  EF Core, esquema y migraciones.
   Margen.Budget/          Motor de presupuesto. Lógica pura, sin HTTP ni base.
+  Margen.Ingest/          Parsers, huellas y duplicados. Lógica pura.
   Margen.Api/             ASP.NET Core. Salud y autenticación.
   Margen.Worker/          Lector del buzón. Esqueleto hasta la Fase 6.
 tests/        Pruebas del servidor. Las de integración usan Postgres real.
@@ -106,8 +107,8 @@ Y se lee `git diff --cached` buscando secretos.
 | 3 | Motor de presupuesto | Cerrada (CR-003) |
 | 4 | Endpoints y contrato | Cerrada (CR-004) |
 | 5 | Capa de datos en Flutter | Cerrada (CR-006) |
-| 6 | Ingesta de correo, sin parser de banco | Siguiente |
-| 7 | Parser del banco | Falta una muestra real |
+| 6 | Ingesta de correo, sin parser de banco | Cerrada (CR-007) |
+| 7 | Parser del banco | **Bloqueada** — faltan las muestras |
 | 8 | Clasificación y anomalías | |
 | 9 | Efectivo desde el iPhone | |
 | 10 | Conciliación | |

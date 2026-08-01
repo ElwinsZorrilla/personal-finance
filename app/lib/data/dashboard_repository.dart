@@ -108,3 +108,35 @@ class MockDashboardRepository implements DashboardRepository {
   @override
   Future<DashboardSnapshot> load() async => _snapshot();
 }
+
+/// Resolver un aviso de la bandeja de Revisión.
+///
+/// Va aparte de [DashboardRepository] a propósito: leer el panel y marcar un
+/// aviso son dos capacidades distintas, y la pantalla de Revisión no debería
+/// poder recargar el panel entero solo porque tiene a mano el repositorio.
+abstract interface class ReviewRepository {
+  Future<void> resolve(String alertId);
+}
+
+class RemoteReviewRepository implements ReviewRepository {
+  const RemoteReviewRepository(this._api);
+
+  final ApiClient _api;
+
+  @override
+  Future<void> resolve(String alertId) async {
+    // El endpoint es idempotente: resolver dos veces no es un error y no mueve
+    // la fecha. Es lo que permite que un toque repetido por nervios no rompa
+    // nada.
+    await _api
+        .postJson('/notifications/$alertId/resolve', const <String, Object>{});
+  }
+}
+
+/// Para desarrollo: acepta y olvida.
+class MockReviewRepository implements ReviewRepository {
+  const MockReviewRepository();
+
+  @override
+  Future<void> resolve(String alertId) async {}
+}

@@ -15,9 +15,14 @@ import 'app_shell.dart';
 /// lectura, porque una cifra de dinero sin fecha es una cifra que el usuario
 /// cree actual.
 class DashboardLoader extends StatefulWidget {
-  const DashboardLoader({super.key, required this.repository});
+  const DashboardLoader({
+    super.key,
+    required this.repository,
+    required this.review,
+  });
 
   final DashboardRepository repository;
+  final ReviewRepository review;
 
   @override
   State<DashboardLoader> createState() => _DashboardLoaderState();
@@ -56,6 +61,19 @@ class _DashboardLoaderState extends State<DashboardLoader> {
     }
   }
 
+  Future<void> _resolve(AttentionItem item) async {
+    try {
+      await widget.review.resolve(item.id);
+    } on ApiFailure {
+      // No se recarga: el aviso sigue ahí y el usuario puede volver a
+      // intentarlo. Tragarse el fallo y quitarlo de la lista haría creer que
+      // se resolvió algo que sigue pendiente.
+      return;
+    }
+
+    await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
@@ -63,7 +81,7 @@ class _DashboardLoaderState extends State<DashboardLoader> {
     if (snapshot != null) {
       return Stack(
         children: [
-          AppShell(snapshot: snapshot),
+          AppShell(snapshot: snapshot, onResolve: _resolve),
           if (snapshot.isFromCache)
             Positioned(
               left: 0,

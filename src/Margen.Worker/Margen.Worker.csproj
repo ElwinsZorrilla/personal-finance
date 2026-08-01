@@ -5,10 +5,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="MailKit" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Margen.Infrastructure/Margen.Infrastructure.csproj" />
+    <ProjectReference Include="../Margen.Ingest/Margen.Ingest.csproj" />
   </ItemGroup>
 
 </Project>

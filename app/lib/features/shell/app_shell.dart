@@ -11,9 +11,12 @@ import '../transactions/transactions_screen.dart';
 /// Cuatro destinos, ni uno más. Cada pestaña responde a una pregunta distinta:
 /// cuánto tengo, qué pasó, cómo voy, qué falta resolver.
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, required this.snapshot});
+  const AppShell({super.key, required this.snapshot, this.onResolve});
 
   final DashboardSnapshot snapshot;
+
+  /// Marcar un aviso como resuelto y recargar. Nulo con datos de prueba.
+  final void Function(AttentionItem item)? onResolve;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -34,7 +37,7 @@ class _AppShellState extends State<AppShell> {
           DashboardScreen(snapshot: s),
           TransactionsScreen(transactions: s.recent),
           BudgetScreen(snapshot: s),
-          ReviewScreen(items: s.attention),
+          ReviewScreen(items: s.attention, onResolve: widget.onResolve),
         ],
       ),
       bottomNavigationBar: DecoratedBox(

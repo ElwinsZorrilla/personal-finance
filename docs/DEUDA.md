@@ -23,4 +23,6 @@ una columna «Se paga en».
 | ~~m20~~ | CR-005 | `intl` sigue como dependencia aunque `core/` ya no la use | — | **Pagada en la Fase 5** (CR-006): fuera de `pubspec.yaml` |
 | m21 | CR-006 | La caché no caduca: una lectura de hace un mes se enseña igual que una de hace un minuto | Lleva su fecha en pantalla, así que no engaña; decidir cuándo deja de servir necesita saber cómo se usa la app | Fase 12, con el endurecimiento |
 | m22 | CR-006 | El token no se guarda ni se renueva: `ApiClient.token` se pone a mano y no hay recorrido de alta desde la app | El recorrido necesita el Enclave Seguro, que necesita empaquetado iOS, que depende de ADR-001 | Fase 11, tras responder ADR-001 |
+| m23 | CR-007 | `SampleBankParser` es un parser de un banco que no existe y queda en el árbol | Es lo que permite probar el andamiaje entero sin el formato real; quitarlo dejaría la tubería sin ninguna prueba de punta a punta | Fase 7: se queda como prueba del registro cuando exista el parser real |
+| m24 | CR-007 | El reproceso se invoca por línea de comandos en el worker, sin endpoint | Lo usa quien despliega, no el usuario; un endpoint pide autorización, límite y una pantalla | Fase 10, con la conciliación |
 

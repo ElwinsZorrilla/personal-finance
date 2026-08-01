@@ -25,7 +25,8 @@ Future<void> main() async {
     ),
   );
 
-  runApp(MargenApp(repository: buildRepository()));
+  final (repository, review) = buildRepositories();
+  runApp(MargenApp(repository: repository, review: review));
 }
 
 /// Elige de dónde salen los datos.
@@ -34,25 +35,39 @@ Future<void> main() async {
 /// resuelve al compilar y la rama muerta se elimina del binario. Es lo que hace
 /// que `MockRepository` —y los seis movimientos de ejemplo que lleva dentro— no
 /// viaje en release.
-DashboardRepository buildRepository() {
+(DashboardRepository, ReviewRepository) buildRepositories() {
   if (Env.useMocks) {
-    return const MockDashboardRepository(MockRepository.strained);
+    return (
+      const MockDashboardRepository(MockRepository.strained),
+      const MockReviewRepository(),
+    );
   }
 
   final sender = IoHttpSender();
+  final api = ApiClient(baseUrl: Env.apiBaseUrl, send: sender.call);
 
-  return RemoteDashboardRepository(
-    api: ApiClient(baseUrl: Env.apiBaseUrl, send: sender.call),
-    store: FileStore(
-      Directory('${Directory.systemTemp.path}${Platform.pathSeparator}margen'),
+  return (
+    RemoteDashboardRepository(
+      api: api,
+      store: FileStore(
+        Directory(
+          '${Directory.systemTemp.path}${Platform.pathSeparator}margen',
+        ),
+      ),
     ),
+    RemoteReviewRepository(api),
   );
 }
 
 class MargenApp extends StatelessWidget {
-  const MargenApp({super.key, required this.repository});
+  const MargenApp({
+    super.key,
+    required this.repository,
+    required this.review,
+  });
 
   final DashboardRepository repository;
+  final ReviewRepository review;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +75,7 @@ class MargenApp extends StatelessWidget {
       title: 'Margen',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
-      home: DashboardLoader(repository: repository),
+      home: DashboardLoader(repository: repository, review: review),
     );
   }
 }

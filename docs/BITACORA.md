@@ -51,4 +51,16 @@ Una línea por iteración cerrada.
             MockRepository fuera del release, medido sobre el binario
             deuda m20 y la de MockRepository pagadas
             deuda abierta: m21 (fase 12), m22 (fase 11)
+
+2026-07-31 · FASE-6 · ingesta de correo, sin parser de banco
+            CR-007 aprobada tras 2 vueltas · 1 Blocker y 2 Majors corregidos
+            las dos compuertas 1 en verde: 367 pruebas (281 .NET, 86 Flutter)
+            el Blocker: la huella tenía granularidad de día, así que dos cafés
+            iguales el mismo día borraban el segundo sin dejar rastro
+            cuatro defensas contra el duplicado, una prueba cada una
+            deuda abierta: m23 (fase 7), m24 (fase 10)
+
+2026-07-31 · FASE-7 · BLOQUEADA
+            faltan correos reales anonimizados en docs/muestras/
+            el andamiaje está entero: solo falta la clase que lee el formato
 ```

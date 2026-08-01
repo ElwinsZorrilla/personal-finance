@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Lógica pura de ingesta: normalización, huella y detección de duplicados.
+       Sin IMAP y sin base de datos, para que el camino entero se pueda probar
+       con muestras sintéticas antes de que exista un correo real del banco. -->
+
+  <ItemGroup>
+    <ProjectReference Include="../Margen.Domain/Margen.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

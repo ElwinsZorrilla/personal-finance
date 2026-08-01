@@ -9,9 +9,13 @@ import '../../domain/models.dart';
 /// Bandeja de lo que el sistema no pudo resolver solo. Vacía es el estado
 /// deseado, así que la pantalla vacía celebra en lugar de disculparse.
 class ReviewScreen extends StatelessWidget {
-  const ReviewScreen({super.key, required this.items});
+  const ReviewScreen({super.key, required this.items, this.onResolve});
 
   final List<AttentionItem> items;
+
+  /// Marcar un aviso como resuelto. Nulo mientras la pantalla se mira con
+  /// datos de prueba.
+  final void Function(AttentionItem item)? onResolve;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +59,7 @@ class ReviewScreen extends StatelessWidget {
               if (urgent.isNotEmpty) ...[
                 const SectionLabel('Resolver primero'),
                 for (final item in urgent) ...[
-                  AttentionTile(item: item),
+                  _Resoluble(item: item, onResolve: onResolve),
                   const SizedBox(height: Space.sm),
                 ],
                 const SizedBox(height: Space.xl),
@@ -63,7 +67,7 @@ class ReviewScreen extends StatelessWidget {
               if (rest.isNotEmpty) ...[
                 const SectionLabel('Cuando puedas'),
                 for (final item in rest) ...[
-                  AttentionTile(item: item),
+                  _Resoluble(item: item, onResolve: onResolve),
                   const SizedBox(height: Space.sm),
                 ],
               ],
@@ -71,6 +75,33 @@ class ReviewScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Envuelve un aviso con la acción de darlo por resuelto.
+///
+/// El gesto es un toque largo y no un botón: la bandeja se lee más de lo que se
+/// toca, y un botón por fila en una lista de avisos convierte la pantalla en un
+/// formulario. La etiqueta semántica sí lo anuncia, para quien navega con
+/// lector.
+class _Resoluble extends StatelessWidget {
+  const _Resoluble({required this.item, required this.onResolve});
+
+  final AttentionItem item;
+  final void Function(AttentionItem item)? onResolve;
+
+  @override
+  Widget build(BuildContext context) {
+    if (onResolve == null) return AttentionTile(item: item);
+
+    return Semantics(
+      button: true,
+      label: 'Dar por resuelto: ${item.title}',
+      child: GestureDetector(
+        onLongPress: () => onResolve!(item),
+        child: AttentionTile(item: item),
+      ),
     );
   }
 }
