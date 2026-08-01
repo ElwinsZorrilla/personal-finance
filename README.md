@@ -36,6 +36,8 @@ infra/        Stack de Docker para el servidor.
 
 ## Desarrollo
 
+Flutter está en `C:\src\flutter` y **no en el PATH**; hay que añadirlo.
+
 ```bash
 cd app
 flutter pub get
@@ -103,8 +105,8 @@ Y se lee `git diff --cached` buscando secretos.
 | 2 | Base del API, esquema, autenticación | Cerrada (CR-002) |
 | 3 | Motor de presupuesto | Cerrada (CR-003) |
 | 4 | Endpoints y contrato | Cerrada (CR-004) |
-| 5 | Capa de datos en Flutter | Siguiente |
-| 6 | Ingesta de correo, sin parser de banco | |
+| 5 | Capa de datos en Flutter | Cerrada (CR-006) |
+| 6 | Ingesta de correo, sin parser de banco | Siguiente |
 | 7 | Parser del banco | Falta una muestra real |
 | 8 | Clasificación y anomalías | |
 | 9 | Efectivo desde el iPhone | |

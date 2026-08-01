@@ -23,6 +23,7 @@ abstract final class MockRepository {
     return DashboardSnapshot(
       period: _period,
       today: _today,
+      fetchedAt: _today,
       safeToSpend: const Money.fromUnits(12000),
       safeToday: const Money.fromUnits(1000),
       spentSoFar: const Money.fromUnits(38200),
@@ -149,7 +150,7 @@ abstract final class MockRepository {
           source: TxSource.email,
           category: 'Sin categoría',
           accountLastFour: '4582',
-          confidence: 0.41,
+          confidenceBasisPoints: 4100,
         ),
         TxRecord(
           id: 't5',

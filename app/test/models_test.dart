@@ -65,8 +65,27 @@ void main() {
       expect(_tx().isCredit, isFalse);
     });
 
-    test('la confianza nace al maximo salvo que se diga otra cosa', () {
-      expect(_tx().confidence, 1.0);
+    test('la confianza nace al maximo y es entera', () {
+      // Puntos básicos, no una fracción: el umbral se compara con enteros.
+      expect(_tx().confidenceBasisPoints, 10000);
+      expect(_tx().isUncertain, isFalse);
+    });
+
+    test('por debajo del 75 por ciento la clasificacion no se da por buena',
+        () {
+      final dudoso = TxRecord(
+        id: 'x',
+        merchant: 'PALA PIZZA',
+        amount: const Money(129000),
+        occurredAt: DateTime(2026, 8, 9),
+        kind: TxKind.purchase,
+        status: TxStatus.needsReview,
+        source: TxSource.email,
+        category: 'Sin categoría',
+        accountLastFour: '4582',
+        confidenceBasisPoints: 4100,
+      );
+      expect(dudoso.isUncertain, isTrue);
     });
   });
 
@@ -119,6 +138,7 @@ void main() {
           end: DateTime(2026, 8, 24),
         ),
         today: DateTime(2026, 8, 9),
+        fetchedAt: DateTime(2026, 8, 9, 7, 30),
         safeToSpend: const Money(1300000),
         safeToday: const Money(80000),
         spentSoFar: const Money(2450000),

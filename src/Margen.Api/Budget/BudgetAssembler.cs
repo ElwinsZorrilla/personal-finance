@@ -108,6 +108,7 @@ public sealed class BudgetAssembler(MargenDbContext db, TimeProvider clock)
             ShortfallCents: safe.Value.Shortfall.Cents,
             Deductions: [.. safe.Value.Deductions
                 .Select(d => new DeductionView(d.Kind.ToString(), d.Amount.Cents))],
+            TotalDeductedCents: safe.Value.TotalDeducted.Cents,
             LiquidCents: safe.Value.Liquid.Cents,
             SafeTodayCents: daily.PerDay.Cents,
             SpentSoFarCents: spending.Value.Total.Cents,
@@ -119,7 +120,7 @@ public sealed class BudgetAssembler(MargenDbContext db, TimeProvider clock)
             HistoricalPeriodsConsidered: baseline.IsComputed
                 ? HistoricalBaseline.PeriodsConsidered(await CountClosedAsync(period, cancellationToken).ConfigureAwait(false))
                 : 0,
-            Categories: BuildCategoryLines(budgets, spending.Value),
+            Categories: BuildCategoryLines(budgets, spending.Value, cycle, today),
             Commitments: await LoadCommitmentsAsync(cycle, cancellationToken).ConfigureAwait(false),
             Attention: await LoadAlertsAsync(cancellationToken).ConfigureAwait(false),
             Recent: await LoadRecentAsync(cycle, cancellationToken).ConfigureAwait(false)));
@@ -302,9 +303,19 @@ public sealed class BudgetAssembler(MargenDbContext db, TimeProvider clock)
                 cancellationToken)
             .ConfigureAwait(false);
 
+    /// <summary>
+    /// Una línea por categoría, con su proyección de cierre.
+    /// </summary>
+    /// <remarks>
+    /// La proyección la calcula el motor, categoría por categoría, con la misma
+    /// función que proyecta el total. Extrapolar en la pantalla sería el segundo
+    /// sitio donde vive la misma fórmula, y el que se desincroniza.
+    /// </remarks>
     private static IReadOnlyList<CategoryLineView> BuildCategoryLines(
         List<CategoryBudget> budgets,
-        SpendingSummary spending)
+        SpendingSummary spending,
+        BudgetCycle cycle,
+        DateOnly today)
     {
         return [.. budgets
             .Select(b =>
@@ -319,6 +330,18 @@ public sealed class BudgetAssembler(MargenDbContext db, TimeProvider clock)
                     b.Allocated + b.Adjustment,
                     spent);
 
+                // Un gasto neto negativo —más devoluciones que compras— no tiene
+                // ritmo que extrapolar, y el motor rechaza un presupuesto
+                // negativo. En los dos casos la proyección honesta es lo
+                // gastado hasta ahora, no una cifra inventada.
+                Outcome<PaceReading> pace = Pace.Read(
+                    allocation.Allocated.Cents < 0 ? Money.Zero : allocation.Allocated,
+                    spent,
+                    cycle,
+                    today);
+
+                Money projected = pace.IsComputed ? pace.Value.ProjectedClose : spent;
+
                 return new CategoryLineView(
                     b.CategoryId,
                     b.Category?.Name ?? "Sin nombre",
@@ -326,6 +349,8 @@ public sealed class BudgetAssembler(MargenDbContext db, TimeProvider clock)
                     allocation.Allocated.Cents,
                     spent.Cents,
                     allocation.Available.Cents,
+                    projected.Cents,
+                    projected > allocation.Allocated,
                     allocation.CanBeTrimmed);
             })
             .OrderBy(c => c.Priority)

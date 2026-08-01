@@ -31,6 +31,11 @@ public sealed record PeriodView(
     int DaysRemaining,
     int ElapsedDays);
 
+/// <param name="ProjectedCents">
+/// Dónde cierra esta categoría al ritmo actual. La calcula el motor, no el
+/// cliente: extrapolar en la pantalla sería el segundo sitio donde vive la
+/// misma fórmula, y el que se desincroniza.
+/// </param>
 public sealed record CategoryLineView(
     Guid CategoryId,
     string Name,
@@ -38,6 +43,8 @@ public sealed record CategoryLineView(
     long AllocatedCents,
     long SpentCents,
     long AvailableCents,
+    long ProjectedCents,
+    bool WillOverrun,
     bool CanBeTrimmed);
 
 public sealed record CommitmentView(
@@ -85,6 +92,12 @@ public sealed record DashboardView(
     bool IsOverdrawn,
     long ShortfallCents,
     IReadOnlyList<DeductionView> Deductions,
+
+    // El total de las restas viaja resuelto aunque el desglose vaya al lado.
+    // Sumarlo en la pantalla sería calcular en el cliente, y la suma de cinco
+    // enteros es exactamente el tipo de cálculo que se cuela sin que nadie lo
+    // llame cálculo.
+    long TotalDeductedCents,
     long LiquidCents,
     long SafeTodayCents,
     long SpentSoFarCents,

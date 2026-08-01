@@ -34,11 +34,21 @@ Una línea por iteración cerrada.
 
 2026-07-31 · PASO CERO DE LA FASE 5 · la compuerta 1 de Flutter, por fin
             CR-005 aprobada · 3 Blockers y 1 Major en el árbol de la Fase 1
-            se encontró Flutter 3.44.5 en C:\srclutter, fuera del PATH
+            se encontró Flutter 3.44.5 en C:\src\flutter, fuera del PATH
             el árbol no compilaba: SectionLabel usaba Divider sin Material
             MoneyFormat escribía RD$ 12.000 por confiar en es_DO de ICU
             DateLabel lanzaba al pintar por falta de initializeDateFormatting
             51 pruebas · core/ al 98 %, domain/ al 84 %
             fuentes SIL OFL descargadas y versionadas
             deuda abierta: m19 (fase 5), m20 (fase 5)
+
+2026-07-31 · FASE-5 · capa de datos en Flutter
+            CR-006 aprobada tras 2 vueltas · 3 Majors corregidos
+            las dos compuertas 1 en verde: 320 pruebas (234 .NET, 86 Flutter)
+            cobertura Flutter: core 98 %, domain 95 %, data 83 %
+            el contrato tenía dos huecos que habrían obligado a calcular en el
+            cliente: se resolvieron en el servidor
+            MockRepository fuera del release, medido sobre el binario
+            deuda m20 y la de MockRepository pagadas
+            deuda abierta: m21 (fase 12), m22 (fase 11)
 ```

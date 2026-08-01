@@ -8,7 +8,7 @@ una columna «Se paga en».
 | m6 | CR-001 | La compuerta 1 no incluye compilación release en cada vuelta | Compilar release en cada vuelta alarga el ciclo de minutos a decenas de minutos | Fase 12, con el despliegue. En .NET ya se compila Release en cada vuelta desde la Fase 2 |
 | m7 | CR-001 | `_RiskNote` usa `projectedDepletion!` protegido por el llamador | Hoy hay un solo llamador y es correcto | Fase 5, al conectar la pantalla de Presupuesto a datos reales. La Fase 4 no tocó `app/` |
 | m8 | CR-001 | `infra/backup.sh` usa `sleep 86400` y deriva | La deriva es de segundos por ciclo, sin efecto en un respaldo diario | Fase 12, junto con la prueba de restauración |
-| — | Fase 1 | `MockRepository` sigue en el árbol de release aunque `Env.useMocks` sea `false` | El compilador de Dart elimina el código muerto con `bool.fromEnvironment` constante; falta confirmarlo midiendo el binario | Fase 5 |
+| ~~—~~ | Fase 1 | `MockRepository` sigue en el árbol de release aunque `Env.useMocks` sea `false` | Faltaba confirmarlo midiendo el binario | **Pagada en la Fase 5** (CR-006): medido sobre `build/web/main.dart.js`, con cadenas de control |
 | ~~m9~~ | CR-002 | Dos altas simultáneas del mismo teléfono chocan contra el índice único y salen como 500 en lugar de devolver el dispositivo existente | Hay un solo usuario y un solo teléfono; la carrera necesita dos peticiones en el mismo milisegundo | **Pagada en la Fase 4** (CR-004) |
 | ~~m10~~ | CR-002 | El alta de dispositivo y el canje de reto no tienen límite de peticiones | El plan lo pone en la Fase 4, junto con los endpoints que protege | **Pagada en la Fase 4** (CR-004) |
 | ~~m11~~ | CR-002 | `POST /transactions/cash` responde 501; existe solo para poder comprobar el alcance del token del Atajo | Sin una ruta que ese token sí alcance, «alcance restringido» se cumpliría por accidente | **Pagada en la Fase 4** (CR-004); la interpretación de texto sigue en la Fase 9 |
@@ -20,5 +20,7 @@ una columna «Se paga en».
 | m17 | CR-004 | La redistribución persiste `Adjustment ±= monto` en vez de los valores que devuelve el motor. Equivalentes hoy | Guardar el ajuste aparte es lo que deja el rastro de qué se movió; unificarlo pide rediseñar el registro de cambios | Fase 10, con el cierre de período |
 | m18 | CR-004 | `Page<T>.NextCursor` siempre es nulo: la paginación real no existe | Con un año de movimientos personales no se llega al tope de 100 por página | Fase 10 |
 | m19 | CR-005 | El contraste 4.5:1 y el respeto a la animación reducida no se han comprobado en ningún widget | CR-005 cubrió el núcleo, no las pantallas; comprobarlas con datos de prueba mediría el mock, no el producto | Fase 5, cuando las pantallas consuman datos reales |
-| m20 | CR-005 | `intl` sigue como dependencia aunque `core/` ya no la use | La arrastra `flutter_localizations`; quitarla exige comprobar qué más la necesita | Fase 5, al montar la capa de datos |
+| ~~m20~~ | CR-005 | `intl` sigue como dependencia aunque `core/` ya no la use | — | **Pagada en la Fase 5** (CR-006): fuera de `pubspec.yaml` |
+| m21 | CR-006 | La caché no caduca: una lectura de hace un mes se enseña igual que una de hace un minuto | Lleva su fecha en pantalla, así que no engaña; decidir cuándo deja de servir necesita saber cómo se usa la app | Fase 12, con el endurecimiento |
+| m22 | CR-006 | El token no se guarda ni se renueva: `ApiClient.token` se pone a mano y no hay recorrido de alta desde la app | El recorrido necesita el Enclave Seguro, que necesita empaquetado iOS, que depende de ADR-001 | Fase 11, tras responder ADR-001 |
 

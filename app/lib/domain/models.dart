@@ -47,7 +47,7 @@ class TxRecord {
     required this.source,
     required this.category,
     required this.accountLastFour,
-    this.confidence = 1.0,
+    this.confidenceBasisPoints = 10000,
   });
 
   final String id;
@@ -60,9 +60,16 @@ class TxRecord {
   final String category;
   final String accountLastFour;
 
-  /// Confianza de la clasificación automática, 0 a 1. Por debajo de 0.75 la
-  /// transacción aparece en Revisión en lugar de asumirse correcta.
-  final double confidence;
+  /// Confianza de la clasificación automática, en puntos básicos: 10000 es
+  /// certeza. Es entero y no `double` por la misma razón que el dinero: se
+  /// compara contra un umbral, y un umbral en coma flotante da resultados
+  /// distintos según por dónde entró el número. El servidor la envía así.
+  final int confidenceBasisPoints;
+
+  /// Por debajo del 75 % la clasificación no se da por buena. Quién decide que
+  /// un movimiento va a Revisión es el servidor, vía `status`; esto solo sirve
+  /// para matizar cómo se dibuja.
+  bool get isUncertain => confidenceBasisPoints < 7500;
 
   /// Un movimiento suma al gasto salvo que devuelva dinero o solo mueva saldo
   /// entre cuentas propias.
@@ -158,7 +165,9 @@ class DashboardSnapshot {
     required this.categories,
     required this.attention,
     required this.recent,
+    required this.fetchedAt,
     this.projectedDepletion,
+    this.isFromCache = false,
   });
 
   final BudgetPeriod period;
@@ -182,6 +191,15 @@ class DashboardSnapshot {
   /// Fecha en la que el dinero se agota al ritmo actual. `null` cuando alcanza
   /// hasta el cierre del período — el caso sano.
   final DateTime? projectedDepletion;
+
+  /// Cuándo se leyó esto del servidor. No es «ahora»: cuando la lectura viene
+  /// de la caché puede ser de ayer, y la pantalla tiene que poder decirlo. Una
+  /// cifra de dinero sin fecha es una cifra que el usuario cree actual.
+  final DateTime fetchedAt;
+
+  /// Se está enseñando la última lectura guardada porque no se pudo hablar con
+  /// el servidor.
+  final bool isFromCache;
 
   bool get runsOutEarly => projectedDepletion != null;
   int get daysLeft => period.daysRemainingFrom(today);
