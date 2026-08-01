@@ -1,3 +1,9 @@
+# ---------- Muestras capturadas del buzón ----------
+# Salen del correo real. El redactor quita lo que sabe reconocer, pero hay que
+# LEERLAS antes de versionarlas. Se quita esta línea cuando estén revisadas.
+docs/muestras/*.txt
+!docs/muestras/README.md
+
 # ---------- Secretos y entorno ----------
 .env
 .env.*

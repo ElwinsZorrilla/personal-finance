@@ -33,4 +33,14 @@ if (args.Contains("--reprocesar", StringComparer.Ordinal))
     return;
 }
 
+// Captura de muestras para escribir el parser del banco:
+//   dotnet run --project src/Margen.Worker -- --capturar-muestras
+// Abre el buzón en solo lectura, redacta lo personal y escribe en
+// docs/muestras/. No toca la base de datos ni el estado del buzón.
+if (args.Contains("--capturar-muestras", StringComparer.Ordinal))
+{
+    Environment.ExitCode = await SampleCapture.RunAsync(host.Services, args);
+    return;
+}
+
 await host.RunAsync();

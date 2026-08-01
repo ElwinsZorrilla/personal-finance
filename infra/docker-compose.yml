@@ -80,6 +80,7 @@ services:
       Imap__User: ${IMAP_USER}
       Imap__Password: ${IMAP_PASSWORD}
       Imap__AllowedSenders: ${IMAP_ALLOWED_SENDERS}
+      Muestras__DatosPersonales: ${MUESTRAS_DATOS_PERSONALES:-}
       TZ: America/Santo_Domingo
     networks:
       - internal

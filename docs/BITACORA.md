@@ -60,7 +60,11 @@ Una línea por iteración cerrada.
             cuatro defensas contra el duplicado, una prueba cada una
             deuda abierta: m23 (fase 7), m24 (fase 10)
 
-2026-07-31 · FASE-7 · BLOQUEADA
-            faltan correos reales anonimizados en docs/muestras/
-            el andamiaje está entero: solo falta la clase que lee el formato
+2026-07-31 · FASE-7 · BLOQUEADA, con la herramienta para desbloquearla
+            captura de muestras desde Gmail por IMAP en SOLO LECTURA
+            redactor probado con 16 casos: quita nombres, correos, tarjetas,
+            montos, referencias y cadenas largas de dígitos, y conserva el
+            formato, que es lo que el parser tiene que aprender
+            docs/muestras/*.txt en .gitignore hasta que se lean
+            falta que el humano corra la captura con su contraseña
 ```

@@ -8,7 +8,7 @@ Vuelta: 0 de 3
 Compuerta 1: verde en las dos, sobre la Fase 6
 Revisión: CR-007 aprobada
 Veredicto: —
-Bloqueo: **faltan correos reales anonimizados en `docs/muestras/`**
+Bloqueo: **faltan las muestras — la herramienta para sacarlas ya está lista**
 
 ## Por qué está bloqueada
 
@@ -22,7 +22,29 @@ caminos, crear el movimiento, reprocesar contra una versión nueva— está escr
 y probado contra muestras sintéticas. Lo único que falta es una clase que
 implemente `IEmailParser` para el formato real.
 
-Qué hace falta y cómo anonimizarlo está en [`docs/muestras/README.md`](muestras/README.md).
+## Cómo desbloquearla
+
+Hay una herramienta que baja las muestras de Gmail, les quita lo personal y las
+deja en `docs/muestras/`. Los pasos —incluida la contraseña de aplicación de
+Google— están en [`docs/gmail.md`](gmail.md).
+
+```bash
+export IMAP_HOST=imap.gmail.com
+export IMAP_USER=tucuenta@gmail.com
+export IMAP_PASSWORD=lacontrasenadeaplicacion
+export IMAP_ALLOWED_SENDERS=alertas@tubanco.com
+export Muestras__DatosPersonales="Nombre Apellido"
+
+dotnet run --project src/Margen.Worker -- --capturar-muestras
+```
+
+Abre el buzón en **solo lectura** y no escribe nada en la base. Los archivos
+que genera están en `.gitignore` a propósito: **hay que leerlos antes de
+versionarlos**, porque el redactor quita lo que sabe reconocer y el banco puede
+poner algo que no previó.
+
+El formato que debe conservar cada muestra está en
+[`docs/muestras/README.md`](muestras/README.md).
 
 ## Lo hecho
 
@@ -33,14 +55,14 @@ Qué hace falta y cómo anonimizarlo está en [`docs/muestras/README.md`](muestr
 | 3 · Motor de presupuesto | Cerrada | CR-003 | 101, cobertura 100 % |
 | 4 · Endpoints y contrato | Cerrada | CR-004 | 105 de integración |
 | 5 · Capa de datos en Flutter | Cerrada | CR-006 | incluidas en las 86 |
-| 6 · Ingesta de correo | Cerrada | CR-007 | 32 puras + integración |
+| 6 · Ingesta de correo | Cerrada | CR-007 | 48 puras + integración |
 
-**367 pruebas**: 281 en .NET, 86 en Flutter. Las dos compuertas 1 en verde.
+**383 pruebas**: 297 en .NET, 86 en Flutter. Las dos compuertas 1 en verde.
 
 ## Lo que necesito del humano
 
-1. **Las muestras de la Fase 7.** Seis archivos en `docs/muestras/`, con el
-   formato descrito en el README de esa carpeta. Es lo único que bloquea.
+1. **Correr la captura** con tu contraseña de aplicación de Gmail y **leer los
+   archivos** que genere. Yo no tengo ni debo tener esa contraseña.
 2. **ADR-001 sin responder**: pagar el programa de Apple o volver a PWA. Define
    el empaquetado de la Fase 11 y condiciona los avisos.
 3. **Confirmar las fuentes** descargadas en la Fase 5: el README dice de dónde
