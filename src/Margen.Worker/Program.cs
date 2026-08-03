@@ -23,10 +23,13 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddOptions<MailboxOptions>()
     .Bind(builder.Configuration.GetSection(MailboxOptions.SectionName));
 
-// El registro de parsers. Cuando llegue la muestra real del banco, lo único
-// que hará falta es añadir una clase aquí: todo lo que la rodea ya está
-// escrito y probado.
-builder.Services.AddSingleton(new ParserRegistry([new SampleBankParser()]));
+// El registro de parsers, en orden. El del Banco Popular va primero porque es
+// el que existe de verdad; el sintético se queda detrás para que la tubería
+// siga teniendo una prueba de punta a punta que no dependa de un banco real.
+builder.Services.AddSingleton(new ParserRegistry([
+    new PopularParser(),
+    new SampleBankParser(),
+]));
 
 if (servicio || reprocesar)
 {

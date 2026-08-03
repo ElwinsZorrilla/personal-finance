@@ -8,4 +8,12 @@
     <ProjectReference Include="../Margen.Domain/Margen.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- `ResolveInstant` y `ParseMoney` son las dos piezas del parser que hay
+         que poder probar con números concretos y sin montar un correo entero.
+         Sacarlas a públicas sería ampliar la superficie del ensamblado por
+         comodidad de las pruebas. -->
+    <InternalsVisibleTo Include="Margen.Ingest.Tests" />
+  </ItemGroup>
+
 </Project>

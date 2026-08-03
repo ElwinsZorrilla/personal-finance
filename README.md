@@ -108,7 +108,7 @@ Y se lee `git diff --cached` buscando secretos.
 | 4 | Endpoints y contrato | Cerrada (CR-004) |
 | 5 | Capa de datos en Flutter | Cerrada (CR-006) |
 | 6 | Ingesta de correo, sin parser de banco | Cerrada (CR-007) |
-| 7 | Parser del banco | **Bloqueada** — faltan las muestras |
+| 7 | Parser del banco | Casi cerrada (CR-008) — falta la fecha del depósito |
 | 8 | Clasificación y anomalías | |
 | 9 | Efectivo desde el iPhone | |
 | 10 | Conciliación | |

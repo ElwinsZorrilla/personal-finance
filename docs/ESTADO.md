@@ -2,13 +2,13 @@
 
 Fase: 7 — Parser del banco
 Rama: fase/6-ingesta-correo (la 7 no se abre hasta desbloquearla)
-Estado: **BLOQUEADA**
+Estado: **casi cerrada** — 14 de 16 muestras se leen
 Paso: —
 Vuelta: 0 de 3
 Compuerta 1: verde en las dos, sobre la Fase 6
-Revisión: CR-007 aprobada
+Revisión: CR-008 aprobada con salvedad
 Veredicto: —
-Bloqueo: **faltan las muestras — la herramienta para sacarlas ya está lista**
+Bloqueo: **una captura más**, para ver el formato de la fecha del depósito
 
 ## Por qué está bloqueada
 

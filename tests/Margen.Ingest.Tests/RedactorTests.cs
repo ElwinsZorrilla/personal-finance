@@ -71,7 +71,7 @@ public sealed class RedactorTests
     {
         string limpio = Con().Redact("Referencia: ABC-123456");
 
-        Assert.Contains("Referencia: XXX-999999", limpio, StringComparison.Ordinal);
+        Assert.Contains("Referencia: AAA-999999", limpio, StringComparison.Ordinal);
         Assert.DoesNotContain("123456", limpio, StringComparison.Ordinal);
     }
 

@@ -81,7 +81,7 @@ public static class SampleCapture
         Directory.CreateDirectory(destino);
 
         string? personales = config["Muestras:DatosPersonales"];
-        var redactor = new Redactor(RedactionSettings.Of(personales));
+        var redactor = new Redactor(RedactionSettings.Of(personales, options.Senders));
 
         if (string.IsNullOrWhiteSpace(personales))
         {

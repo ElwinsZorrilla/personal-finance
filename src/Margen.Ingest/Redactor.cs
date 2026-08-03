@@ -33,6 +33,48 @@ public sealed partial class Redactor(RedactionSettings settings)
         // de correo y sobrevive a la redacción.
         string result = body.Replace("­", string.Empty, StringComparison.Ordinal);
 
+        // `&nbsp;` es un espacio para quien lee y no lo es para una expresión
+        // regular. El banco lo usa entre la moneda y la cifra —`RD&nbsp;4,000`—
+        // y eso dejó pasar montos reales. Se normaliza a espacio antes de
+        // mirar nada; el HTML sigue siendo legible y el parser tampoco lo
+        // necesita como entidad.
+        result = result.Replace("&nbsp;", " ", StringComparison.OrdinalIgnoreCase);
+
+        // Las direcciones del banco se apartan antes de redactar y se devuelven
+        // después. No son datos personales: son la dirección desde la que
+        // escribe el banco, y es lo que el parser usa para decidir si un correo
+        // es suyo. Sin esto, la muestra pierde el único dato que dice de quién
+        // es.
+        var preserved = new List<string>();
+        foreach (string keep in _settings.PreservedTerms)
+        {
+            if (string.IsNullOrWhiteSpace(keep)) continue;
+            if (!result.Contains(keep, StringComparison.OrdinalIgnoreCase)) continue;
+
+            string token = $"PRESERVADO{preserved.Count}";
+            result = Regex.Replace(
+                result,
+                Regex.Escape(keep),
+                token,
+                RegexOptions.IgnoreCase,
+                TimeSpan.FromSeconds(2));
+            preserved.Add(keep);
+        }
+
+        // Segunda pasada, sobre el texto **sin etiquetas**.
+        //
+        // El HTML del banco parte una frase entre celdas:
+        // `<td>terminada en</td><td>6463</td>`. Para una expresión regular eso
+        // no es «terminada en 6463» y los cuatro dígitos sobrevivieron a la
+        // primera captura. Aquí se busca sobre el texto plano —donde la frase sí
+        // está entera— y lo que se encuentre se borra del original literalmente,
+        // que es lo que permite conservar el HTML intacto para escribir el
+        // parser.
+        foreach (string secreto in FindInPlainText(result))
+        {
+            result = result.Replace(secreto, "1234", StringComparison.Ordinal);
+        }
+
         // El nombre que sigue a una etiqueta de persona, sea de quien sea.
         //
         // Va primero y es la regla que más cubre. Los términos que da el
@@ -62,9 +104,12 @@ public sealed partial class Redactor(RedactionSettings settings)
         }
 
         result = EmailPattern().Replace(result, "finanzas@ejemplo.do");
-        result = ReferencePattern().Replace(result, ReplaceReference);
+        // Las máscaras van antes que la referencia: cualquier salida de una
+        // regla es entrada de las siguientes, y cuanto menos texto generado
+        // vean, menos ocasiones hay de que una se coma lo que puso otra.
         result = MaskedCardPattern().Replace(result, m => m.Groups["mask"].Value + "1234");
         result = SpelledCardPattern().Replace(result, m => m.Groups["etiqueta"].Value + "1234");
+        result = ReferencePattern().Replace(result, ReplaceReference);
         result = AmountPattern().Replace(result, ReplaceAmount);
 
         // La última red, después de todo lo demás: cualquier cadena de ocho
@@ -73,7 +118,37 @@ public sealed partial class Redactor(RedactionSettings settings)
         // mucho— ni un monto con separadores.
         result = LongDigitsPattern().Replace(result, m => new string('0', m.Length));
 
+        for (int i = 0; i < preserved.Count; i++)
+        {
+            result = result.Replace($"PRESERVADO{i}", preserved[i], StringComparison.Ordinal);
+        }
+
         return result;
+    }
+
+    /// <summary>
+    /// Los valores sensibles que solo se ven con el HTML quitado.
+    /// </summary>
+    /// <remarks>
+    /// Devuelve los literales, no el texto sustituido: lo que hace falta es
+    /// saber **qué** borrar del original, porque el original tiene que seguir
+    /// siendo HTML para que el parser se pueda escribir contra él.
+    /// </remarks>
+    private static IEnumerable<string> FindInPlainText(string html)
+    {
+        string plain = EmailText.Normalize(html);
+
+        foreach (Match m in SpelledCardPattern().Matches(plain))
+        {
+            string digits = m.Value[^4..];
+            if (digits != "1234") yield return digits;
+        }
+
+        foreach (Match m in MaskedCardPattern().Matches(plain))
+        {
+            string digits = m.Value[^4..];
+            if (digits != "1234") yield return digits;
+        }
     }
 
     /// <summary>
@@ -111,7 +186,13 @@ public sealed partial class Redactor(RedactionSettings settings)
 
         foreach (char c in value)
         {
-            builder.Append(char.IsAsciiDigit(c) ? '9' : char.IsAsciiLetter(c) ? 'X' : c);
+            // Letra sustituta 'A' y no 'X'. `xxxx1234` es una forma legítima
+            // de enmascarar una tarjeta, así que el patrón de máscara leía las
+            // X de esta misma sustitución como si fueran asteriscos y volvía a
+            // reemplazar los dígitos que acababan de ponerse. Un redactor que
+            // se come su propia salida es un redactor que produce basura
+            // distinta cada vez que se le añade una regla.
+            builder.Append(char.IsAsciiDigit(c) ? '9' : char.IsAsciiLetter(c) ? 'A' : c);
         }
 
         return prefix + builder.ToString();
@@ -125,7 +206,7 @@ public sealed partial class Redactor(RedactionSettings settings)
 
     /// <summary>Los últimos cuatro dígitos con máscara: `****1234`.</summary>
     [GeneratedRegex(
-        @"(?<mask>[*x•]{2,}\s?)\d{4}",
+        @"(?<mask>[*x•]{2,}[\s_.\-]{0,2})\d{4}",
         RegexOptions.IgnoreCase,
         matchTimeoutMilliseconds: 2000)]
     private static partial Regex MaskedCardPattern();
@@ -165,7 +246,7 @@ public sealed partial class Redactor(RedactionSettings settings)
     /// con el correo real.
     /// </remarks>
     [GeneratedRegex(
-        @"(?<pre>(?:RD\$|US\$|\$|(?:Monto|Valor|Importe|Total)\s*:?)\s*)(?<num>\d[\d.,]*)",
+        @"(?<pre>(?:RD\$?|US\$?|\$|(?:Monto|Valor|Importe|Total)\s*:?)\s*)(?<num>\d[\d.,]*)",
         RegexOptions.IgnoreCase,
         matchTimeoutMilliseconds: 2000)]
     private static partial Regex AmountPattern();
@@ -177,10 +258,16 @@ public sealed partial class Redactor(RedactionSettings settings)
     private static partial Regex ReferencePattern();
 
     /// <summary>
-    /// Cualquier cadena de ocho dígitos o más que haya sobrevivido: un número
-    /// de cuenta, un documento de identidad, un teléfono.
+    /// Cualquier cadena de nueve dígitos o más que haya sobrevivido: un número
+    /// de cuenta o una cédula, que en República Dominicana son once.
     /// </summary>
-    [GeneratedRegex(@"\d{8,}", RegexOptions.None, matchTimeoutMilliseconds: 2000)]
+    /// <remarks>
+    /// Nueve y no ocho. Con ocho se llevaba por delante la fecha del depósito,
+    /// que el banco escribe sin separadores, y sin fecha esa muestra no sirve
+    /// para escribir el parser. Redactar de más parece la opción segura y no lo
+    /// es: deja una muestra que miente sobre el formato.
+    /// </remarks>
+    [GeneratedRegex(@"\d{9,}", RegexOptions.None, matchTimeoutMilliseconds: 2000)]
     private static partial Regex LongDigitsPattern();
 
     /// <summary>
@@ -208,8 +295,20 @@ public sealed partial class Redactor(RedactionSettings settings)
 /// Qué considerar personal. Los términos los da quien ejecuta la captura: el
 /// programa no puede adivinar cómo se llama alguien.
 /// </summary>
-public sealed record RedactionSettings(IReadOnlyList<string> PersonalTerms)
+public sealed record RedactionSettings(
+    IReadOnlyList<string> PersonalTerms,
+    IReadOnlyList<string>? Preserved = null)
 {
+    /// <summary>
+    /// Lo que **no** se toca: las direcciones desde las que escribe el banco.
+    /// </summary>
+    /// <remarks>
+    /// No son datos personales y son lo que el parser mira para decidir si un
+    /// correo es suyo. Sin apartarlas, la regla de las direcciones de correo se
+    /// las lleva y la muestra queda sin decir de quién es.
+    /// </remarks>
+    public IReadOnlyList<string> PreservedTerms { get; } = Preserved ?? [];
+
     /// <summary>
     /// Cada palabra de cada término, por separado y sin repetir.
     /// </summary>
@@ -233,7 +332,11 @@ public sealed record RedactionSettings(IReadOnlyList<string> PersonalTerms)
             .Distinct(StringComparer.OrdinalIgnoreCase),
     ];
 
-    public static RedactionSettings Of(string? commaSeparated) =>
-        new([.. (commaSeparated ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]);
+    public static RedactionSettings Of(
+        string? commaSeparated,
+        IReadOnlyList<string>? preserved = null) =>
+        new(
+            [.. (commaSeparated ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)],
+            preserved);
 }
