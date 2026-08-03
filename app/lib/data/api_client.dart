@@ -106,9 +106,16 @@ class ApiClient {
     return _decode(response);
   }
 
-  Future<Map<String, dynamic>> postJson(String path, Object body) async {
+  /// [headers] existe por el alta de dispositivo, que manda el código en una
+  /// cabecera y no en el cuerpo: así no queda escrito en un registro de
+  /// peticiones que incluya cuerpos.
+  Future<Map<String, dynamic>> postJson(
+    String path,
+    Object body, {
+    Map<String, String> headers = const {},
+  }) async {
     final response = await _run(
-      ApiRequest(method: 'POST', path: path, body: body),
+      ApiRequest(method: 'POST', path: path, body: body, headers: headers),
     );
     return _decode(response);
   }
