@@ -7,6 +7,7 @@ import 'package:margen/data/api_client.dart';
 import 'package:margen/data/dashboard_dto.dart';
 import 'package:margen/data/dashboard_repository.dart';
 import 'package:margen/data/local_store.dart';
+import 'package:margen/data/local_store_io.dart';
 import 'package:margen/domain/models.dart';
 
 /// Una respuesta con la forma exacta que devuelve `GET /dashboard`.

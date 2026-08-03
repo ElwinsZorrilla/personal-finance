@@ -116,5 +116,5 @@ Y se lee `git diff --cached` buscando secretos.
 | 8 | Clasificación y anomalías | Cerrada (CR-009) |
 | 9 | Efectivo desde el iPhone | Cerrada (CR-010) |
 | 10 | Conciliación | Cerrada (CR-011) |
-| 11 | Empaquetado iOS | Depende de ADR-001 |
+| 11 | Empaquetado PWA | Cerrada (CR-015) |
 | 12 | Endurecimiento y despliegue | Cerrada (CR-014). Desplegar lo hace el humano |

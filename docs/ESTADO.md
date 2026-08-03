@@ -1,30 +1,39 @@
 # Estado
 
-Fase: 12 - Endurecimiento y despliegue
-Rama: fase/12-despliegue
-Estado: **cerrada en lo que se puede construir**
+Fase: 11 - Empaquetado PWA
+Rama: fase/11-pwa
+Estado: **cerrada**
 Paso: 7 de 7 (NEXT)
 Vuelta: 1 de 3
 Compuerta 1: verde en las dos
-Revisión: CR-014 aprobada
-Veredicto: **APROBADA, con el despliegue pendiente del humano**
+Revisión: CR-015 aprobada
+Veredicto: **APROBADA**
 Bloqueo: -
 
-## El despliegue lo haces tú
+## ADR-001 decidido: PWA
 
-Desplegar toca producción y credenciales, que es condición de parada del
-`LOOP.md`. Está todo construido y verificado; el arranque está escrito paso a
-paso en [`docs/despliegue.md`](despliegue.md).
+Sin programa de Apple, sin Mac, sin refirmar nada. **Flutter Web empaquetado
+como PWA**, que reutiliza el cliente entero en vez de reescribirlo.
 
-Lo que sí se puede afirmar sin desplegar:
+El ADR descartaba esta opción por el peso del paquete. Se midió: **2,1 MB
+comprimidos la primera vez**, y se cachean —una PWA instalada no los vuelve a
+descargar—. El número era correcto y la conclusión no.
 
-- El compose es válido y **ningún servicio publica un puerto al host**. El único
-  camino de entrada es el proxy, y la base vive en una red sin salida.
-- **El respaldo se restaura de verdad**, y hay una prueba que lo comprueba en
-  cada tanda: `pg_dump` real, base descartable, `pg_restore --exit-on-error`, y
-  se cuentan las filas y los tipos.
-- Los secretos y su rotación están en [`docs/secretos.md`](secretos.md), y
-  ninguno está en el repositorio.
+Los avisos push funcionan desde iOS 16.4 con la app instalada en la pantalla de
+inicio. Falta implementarlos (m36); el criterio de qué merece aviso ya existe
+desde la Fase 8.
+
+## Lo que faltaba y nadie había visto
+
+Toda la capa de datos estaba escrita contra `dart:io`: el almacén sobre archivos
+y el transporte sobre `HttpClient`. **Nada de eso existe en un navegador**, y
+`flutter build web` terminaba con éxito igual. Es la tercera vez en este
+proyecto que Flutter compila algo que no arranca.
+
+Corregido con importación condicional: `localStorage` y `XMLHttpRequest` en web,
+archivos y `HttpClient` fuera. Y el código 0 —que es como el navegador dice «no
+hay red»— ahora se lee como tal: antes daba pantalla de error en vez del último
+panel guardado.
 
 ## Lo hecho
 
@@ -43,9 +52,10 @@ Lo que sí se puede afirmar sin desplegar:
 
 | — · Segundo banco: Qik | Cerrado | CR-012 | 18 en `Ingest` |
 | — · Tercer banco: Banreservas | Cerrado | CR-013 | 19 en `Ingest` |
+| 11 · Empaquetado PWA | Cerrada | CR-015 | 1 de red + build web |
 | 12 · Endurecimiento y despliegue | Cerrada | CR-014 | 3 de respaldo + 2 de caché |
 
-**823 pruebas**: 730 en .NET, 93 en Flutter. Las dos compuertas 1 en verde.
+**824 pruebas**: 730 en .NET, 94 en Flutter. Las dos compuertas 1 en verde.
 Cobertura de `Margen.Classify`: 99,8 % de líneas, 98,3 % de ramas.
 
 ## Lo que necesito del humano
@@ -74,7 +84,7 @@ ti:
    Hasta que el stack corra contra datos de verdad, tres deudas de rendimiento
    —m16, m27, m30— no se pueden pagar: su condición es «con medición real», y
    medir sobre datos sembrados mediría los datos sembrados.
-2. **Responder ADR-001**, que desbloquea la Fase 11.
+2. ~~Responder ADR-001~~. **Hecho**: PWA.
 
 Y cuando aparezca un banco nuevo: **un parser más**. No es una fase; es trabajo
 que se hace cada vez, y el andamiaje ya está probado tres veces.
@@ -85,7 +95,7 @@ que se hace cada vez, y el andamiaje ya está probado tres veces.
   `main`, `fase/2-base-api`, `fase/3-motor-presupuesto`, `fase/4-endpoints`,
   `fase/5-datos-flutter`, `fase/6-ingesta-correo`, `fase/7-parser-banco`,
   `fase/8-clasificacion`, `fase/9-efectivo-iphone`, `fase/10-conciliacion`,
-  `bancos/qik`, `bancos/banreservas`, `fase/12-despliegue`.
+  `bancos/qik`, `bancos/banreservas`, `fase/12-despliegue`, `fase/11-pwa`.
 - .NET 10.0.204, Docker 29.5.3 y Flutter 3.44.5. Flutter está en
   `C:\src\flutter` pero **no en el PATH**: hay que añadirlo a mano.
 - Regenerar el contrato tras cambiar la superficie del API:

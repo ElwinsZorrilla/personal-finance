@@ -167,6 +167,16 @@ class ApiClient {
     if (code >= 200 && code < 300) return null;
 
     final kind = switch (code) {
+      // El cero no es un código HTTP: es lo que devuelve el transporte del
+      // navegador cuando **no llegó a hablar con nadie** —sin red, tiempo
+      // agotado, petición cancelada—. Sin esta rama caía en `badRequest`, y
+      // como el panel solo usa la caché ante `unreachable`, abrir la app sin
+      // señal daba pantalla de error en vez del último panel conocido.
+      //
+      // Es el criterio de la Fase 5 —«abrir sin señal y ver lo último»— roto
+      // solo en web y sin que nada fallara: el transporte de `dart:io` lanza
+      // una excepción y esa sí se reconocía.
+      0 => ApiFailureKind.unreachable,
       401 => ApiFailureKind.unauthenticated,
       403 => ApiFailureKind.forbidden,
       409 => ApiFailureKind.unavailableData,

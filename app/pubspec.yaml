@@ -11,6 +11,10 @@ dependencies:
     sdk: flutter
   google_fonts: ^6.2.1
 
+  # El almacén de la PWA. Solo lo usa `local_store_web.dart`, que no se
+  # compila fuera del navegador.
+  web: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

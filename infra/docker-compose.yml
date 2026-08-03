@@ -66,6 +66,35 @@ services:
         max-size: "10m"
         max-file: "5"
 
+  # La PWA: archivos estáticos servidos por nginx. Va en la red del proxy y no
+  # en la interna, porque es lo que abre el navegador; y no toca la base de
+  # datos, porque no tiene nada que buscar ahí.
+  app:
+    image: ${REGISTRY}/margen-app:${TAG:-latest}
+    restart: unless-stopped
+    networks:
+      - proxy
+    read_only: true
+    tmpfs:
+      # nginx escribe su pid y sus temporales. Con el sistema de archivos de
+      # solo lectura hacen falta en memoria.
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/index.html"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
   worker:
     image: ${REGISTRY}/margen-worker:${TAG:-latest}
     restart: unless-stopped

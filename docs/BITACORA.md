@@ -213,4 +213,27 @@ Una línea por iteración cerrada.
             m16, m27 y m30 se desbloquean AL DESPLEGAR, no antes: sin producción
             no hay nada que medir
             deuda abierta: m34 (el despliegue, que lo hace el humano)
+
+2026-08-03 · FASE-11 · empaquetado PWA
+            CR-015 aprobada tras 1 vuelta · 1 Blocker y 1 Major corregidos
+            las dos compuertas 1 en verde: 824 pruebas (730 .NET, 94 Flutter)
+            ADR-001 DECIDIDO: PWA, opción C · el ADR la descartaba sin medirla
+            medido: 2,1 MB comprimidos la primera vez, y se cachean · el número
+            era correcto y la conclusión no
+            la alternativa era reescribir app/ entero y volver a cometer los
+            mismos errores de dinero, que se cometen al escribir
+            B1: TODA la capa de datos estaba escrita contra dart:io · almacén
+            sobre archivos y transporte sobre HttpClient · nada existe en web y
+            `flutter build web` terminaba con éxito
+            tercera vez en el proyecto que Flutter compila algo que no arranca:
+            en este proyecto, `flutter build` no es una verificación de nada
+            importación condicional: localStorage y XMLHttpRequest en web
+            M1: sin red en web daba pantalla de error en vez del último panel ·
+            dart:io lanza y el navegador devuelve código 0, que caía en
+            badRequest · criterio de la Fase 5 roto solo en la plataforma nueva
+            iconos y manifiesto propios: los de flutter create decían «A new
+            Flutter project» y llevaban el logo de Flutter
+            nginx sirve la PWA · index y service worker SIN cachear: son los que
+            anuncian la versión nueva
+            deuda abierta: m35 (abrirla en un navegador), m36 (push)
 ```

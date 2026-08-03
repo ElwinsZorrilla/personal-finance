@@ -48,6 +48,33 @@ ApiClient _client(
 
 void main() {
   group('ApiClient', () {
+    test('el codigo cero del navegador es falta de red, no peticion mala',
+        () async {
+      // El transporte del navegador no lanza cuando no hay red: devuelve un
+      // código 0. Sin esta traducción caía en `badRequest`, y como el panel
+      // solo usa la caché ante `unreachable`, abrir la app sin señal daba
+      // pantalla de error en vez del último panel conocido.
+      //
+      // Es el criterio de la Fase 5 roto **solo en web**: con `dart:io` el
+      // transporte lanza una excepción, y esa sí se reconocía.
+      final sender = FakeSender([
+        const ApiResponse(0, ''),
+        const ApiResponse(0, ''),
+        const ApiResponse(0, ''),
+      ]);
+
+      await expectLater(
+        _client(sender).getJson('/dashboard'),
+        throwsA(
+          isA<ApiFailure>().having(
+            (f) => f.kind,
+            'kind',
+            ApiFailureKind.unreachable,
+          ),
+        ),
+      );
+    });
+
     test('devuelve el json de una respuesta buena', () async {
       final sender =
           FakeSender([const ApiResponse(200, '{"safeToSpendCents":1300000}')]);

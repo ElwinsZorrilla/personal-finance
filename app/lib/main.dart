@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'core/env.dart';
 import 'data/api_client.dart';
 import 'data/dashboard_repository.dart';
+import 'data/api_sender.dart';
 import 'data/local_store.dart';
 import 'data/mock_repository.dart';
 import 'design/theme.dart';
@@ -43,17 +42,16 @@ Future<void> main() async {
     );
   }
 
-  final sender = IoHttpSender();
-  final api = ApiClient(baseUrl: Env.apiBaseUrl, send: sender.call);
+  // El transporte lo elige la plataforma, igual que el almacén.
+  final api = ApiClient(baseUrl: Env.apiBaseUrl, send: defaultSender());
 
   return (
     RemoteDashboardRepository(
       api: api,
-      store: FileStore(
-        Directory(
-          '${Directory.systemTemp.path}${Platform.pathSeparator}margen',
-        ),
-      ),
+      // El almacén lo elige la plataforma. Ver `local_store.dart`: construir
+      // aquí un `FileStore` hacía que la app compilara para web y se cayera al
+      // arrancar, porque `dart:io` no existe en el navegador.
+      store: defaultStore(),
     ),
     RemoteReviewRepository(api),
   );

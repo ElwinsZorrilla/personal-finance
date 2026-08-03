@@ -1,7 +1,7 @@
 # ADR-001 — Cómo llega la app al iPhone
 
-**Estado:** requiere tu decisión antes de la Fase 5
-**Fecha:** 2026-07-31
+**Estado:** **DECIDIDO — opción C**, el 2026-08-03
+**Fecha:** 2026-07-31 · decidido el 2026-08-03
 
 ## Contexto
 
@@ -32,7 +32,54 @@ algo va mal, y que no puede avisar, es una app que hay que abrir por si acaso
 La D queda descartada: incumple un requisito funcional y añade una tarea
 semanal permanente.
 
-## Decisión
+## Decisión (2026-08-03)
+
+**Opción C: Flutter Web empaquetado como PWA.** Sin programa de Apple.
+
+La recomendación original era la A. La decisión del humano fue no pagar, y al
+medir lo que la propuesta original descartaba sin medir, la C resultó ser mejor
+que la B.
+
+### Lo que decía el ADR sobre la C, y lo que salió al medirlo
+
+Decía: «el paquete inicial de Flutter Web pesa varios megabytes […] para una app
+que se abre veinte veces al día en sesiones de tres segundos, ese arranque se
+nota».
+
+Medido sobre `flutter build web --release`, lo que viaja comprimido:
+
+| | gzip |
+|---|---|
+| `main.dart.js` | 617 KB |
+| `skwasm.wasm` | 1 501 KB |
+| `flutter.js`, arranque y fuentes | 31 KB |
+| **Primera carga** | **~2,1 MB** |
+
+El número era correcto. **La conclusión no.** Esos 2,1 MB se descargan **una vez
+por versión**, no en cada apertura: una PWA instalada en la pantalla de inicio
+los cachea con su service worker. Las veinte aperturas diarias de tres segundos
+salen de la caché y no tocan la red.
+
+La objeción valía para una página web que se visita; no vale para una app
+instalada.
+
+### Por qué no la B
+
+La B —una PWA escrita a mano— arrancaría en unas decenas de kilobytes, y cuesta
+**reescribir `app/` entero**: 93 pruebas, la aritmética de centavos, el formato
+de dinero que ya costó un Blocker en CR-005 porque ICU agrupa `RD$ 12.000` al
+estilo europeo, las fechas que costaron otro, los DTO, los repositorios y la
+caché.
+
+Rehacer eso en otro lenguaje no es trasladar código: es volver a cometer los
+mismos errores de dinero, porque son errores que se cometen **al escribir**, no
+al copiar.
+
+Dos megabytes cacheados cuestan menos que eso.
+
+---
+
+### La propuesta original, para el registro
 
 **Opción A**, salvo que decidas lo contrario.
 
@@ -49,11 +96,18 @@ Flutter Web pesa varios megabytes, el desplazamiento no se siente nativo y el
 texto se rasteriza distinto. Para una app que se abre veinte veces al día en
 sesiones de tres segundos, ese arranque se nota.
 
-## Consecuencias
+## Consecuencias de la C
 
-- Si eliges A: la Fase 5 necesita un Mac para firmar y una cuenta activa.
-- Si eliges B o C: la Fase 5 cambia de contenido, no de calendario, y el
-  Atajo de Siri de la Fase 6 funciona igual —habla con el API por HTTP y no
+- **No hace falta Mac, ni cuenta de Apple, ni refirmar nada.** Nunca.
+- La Fase 11 deja de ser «empaquetado iOS» y pasa a ser **empaquetado PWA**:
+  manifiesto, service worker, iconos y comportamiento sin red.
+- **Los avisos push funcionan** desde iOS 16.4, con la app instalada en la
+  pantalla de inicio y con permiso concedido. Era el requisito que descartaba la
+  D y el que empujaba hacia la A.
+- El Atajo de Siri de la Fase 9 funciona igual: habla con el API por HTTP y no
   le importa qué haya del otro lado.
-- La decisión no bloquea nada antes de la Fase 5. Las fases 1 a 4 son idénticas
-  en los tres caminos.
+- **El despliegue cambia**: hay algo estático que servir, así que la Fase 11 va
+  antes que el arranque del stack. Desplegar sin la PWA y volver a desplegar con
+  ella es tocar dos veces un servidor que tiene otras cosas en producción.
+- Nada de lo hecho en las fases 1 a 10 se pierde ni se toca. El cliente Flutter
+  se compila para otra plataforma; el servidor no se entera.

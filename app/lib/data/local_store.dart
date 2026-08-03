@@ -1,5 +1,5 @@
-import 'dart:convert';
-import 'dart:io';
+import 'local_store_io.dart' if (dart.library.js_interop) 'local_store_web.dart'
+    as plataforma;
 
 /// Almacenamiento de clave y texto.
 ///
@@ -27,53 +27,18 @@ class MemoryStore implements LocalStore {
   Future<void> remove(String key) async => _values.remove(key);
 }
 
-/// Un archivo por clave, dentro de un directorio.
+/// El almacén que corresponde a la plataforma donde corre la app.
 ///
-/// La escritura es a un archivo temporal y después un renombrado. Escribir
-/// encima directamente deja el archivo a medias si la app muere a mitad —y la
-/// app muere a mitad todo el tiempo: el sistema la mata en segundo plano—. Un
-/// panel guardado a medias no se puede interpretar y la app abriría sin nada
-/// justo cuando la caché es lo único que hay.
-class FileStore implements LocalStore {
-  FileStore(this.directory);
-
-  final Directory directory;
-
-  @override
-  Future<String?> read(String key) async {
-    final file = _fileOf(key);
-    if (!file.existsSync()) return null;
-
-    try {
-      return await file.readAsString();
-    } on FileSystemException {
-      return null;
-    }
-  }
-
-  @override
-  Future<void> write(String key, String value) async {
-    if (!directory.existsSync()) {
-      await directory.create(recursive: true);
-    }
-
-    final temporal = File('${_fileOf(key).path}.tmp');
-    await temporal.writeAsString(value, flush: true);
-    await temporal.rename(_fileOf(key).path);
-  }
-
-  @override
-  Future<void> remove(String key) async {
-    final file = _fileOf(key);
-    if (file.existsSync()) await file.delete();
-  }
-
-  /// La clave se codifica: un nombre de archivo no admite los mismos
-  /// caracteres que una clave, y una clave con `..` escribiría fuera del
-  /// directorio.
-  File _fileOf(String key) =>
-      File('${directory.path}${Platform.pathSeparator}${_safe(key)}');
-
-  static String _safe(String key) =>
-      base64Url.encode(utf8.encode(key)).replaceAll('=', '');
-}
+/// En el teléfono y en el escritorio, un archivo por clave. **En el navegador,
+/// `localStorage`**, porque `dart:io` no existe ahí.
+///
+/// Se resuelve con importación condicional y no con una comprobación en tiempo
+/// de ejecución: `import 'dart:io'` en un archivo que llega al build de web es
+/// un error de compilación, así que la rama que no toca ni siquiera se compila.
+///
+/// Antes de esto, `main.dart` construía un `FileStore` sobre
+/// `Directory.systemTemp` en todas las plataformas. Compilaba —y en el
+/// navegador se caía al arrancar, que es exactamente cómo fallaron `MoneyFormat`
+/// y `DateLabel` en la Fase 5: el compilador dijo que sí y la pantalla salió en
+/// blanco.
+LocalStore defaultStore() => plataforma.createStore();

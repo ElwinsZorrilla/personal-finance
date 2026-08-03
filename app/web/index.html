@@ -1,46 +1,89 @@
 <!DOCTYPE html>
-<html>
+<html lang="es-DO">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
+  <!-- Lo reemplaza `flutter build web --base-href`. Se sirve desde la raíz. -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Cuánto puedes gastar sin afectar tus compromisos.">
 
-  <!-- iOS meta tags & icons -->
+  <!--
+    `viewport-fit=cover` es lo que deja que la app llegue hasta los bordes en un
+    iPhone con muesca. Sin él queda una franja del color de fondo del navegador
+    arriba y abajo, y la app instalada se ve como una página metida en un marco
+    en vez de como una app.
+
+    `user-scalable=no` no se pone a propósito: impedir el zoom en una pantalla
+    llena de cifras es quitarle la lupa a quien la necesita para leerlas.
+  -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!--
+    Instalada en la pantalla de inicio, iOS la abre sin la barra de Safari.
+    `mobile-web-app-capable` es el nombre actual; el `apple-` es el histórico y
+    sigue haciendo falta en versiones de iOS que no entienden el otro.
+  -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="margen">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 
-  <!-- Favicon -->
+  <!--
+    `black-translucent` deja que el contenido pase por debajo de la barra de
+    estado, que es lo que permite que el fondo oscuro llegue arriba del todo.
+    Con `black` queda una franja negra que no es del mismo negro.
+  -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Margen">
+
+  <!-- El color de la barra del navegador antes de instalarla. Es `ink`. -->
+  <meta name="theme-color" content="#0B1418">
+
+  <!--
+    En iOS el icono de la pantalla de inicio sale de aquí y no del manifiesto.
+    Sin esta línea, iOS usa una captura de la página, que es ilegible.
+  -->
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>margen</title>
+  <title>Margen</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /*
+      El fondo se pinta aquí y no solo en Flutter. Entre que el navegador abre
+      la página y que arranca el motor gráfico pasan unos segundos la primera
+      vez —dos megas de wasm—, y sin esto ese rato es una pantalla en blanco.
+      En una app de fondo oscuro, el blanco deslumbra y parece que algo falló.
+    */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #0B1418;
+      color: #EDE7DC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overscroll-behavior: none;
+    }
+
+    #cargando {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      letter-spacing: 0.02em;
+      color: #7E939B;
+    }
+  </style>
 </head>
 <body>
   <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
+    Lo tapa Flutter al pintar encima. No lleva barra de progreso: una que no
+    sabe cuánto falta miente, y aquí no se sabe.
   -->
+  <div id="cargando">Cargando…</div>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
