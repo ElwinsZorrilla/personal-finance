@@ -19,8 +19,21 @@ public sealed record LedgerEntry(
     TxKind Kind,
     TxStatus Status,
     DateOnly OccurredOn,
-    Guid? RefundsTransactionId = null)
+    Guid? RefundsTransactionId = null,
+    TxDirection? Direction = null)
 {
+    /// <summary>
+    /// La dirección guardada, o la que le tocaría a este tipo.
+    /// </summary>
+    /// <remarks>
+    /// Nulo por defecto y no `Outflow`. Con un valor fijo por defecto, quien
+    /// construyera una entrada sin acordarse convertía un pago de tarjeta en
+    /// gasto, que es exactamente el caso que el criterio de la Fase 3 dice que
+    /// no debe contar. Deducirlo del tipo hace que olvidarlo dé el resultado
+    /// correcto.
+    /// </remarks>
+    public TxDirection EffectiveDirection => Direction ?? Directions.Of(Kind);
+
     /// <summary>
     /// Aporte con signo al gasto. Réplica de <c>Transaction.SpendingEffect</c>,
     /// que es la definición que manda.
@@ -30,7 +43,8 @@ public sealed record LedgerEntry(
         get
         {
             bool counts = Status is not (TxStatus.Rejected or TxStatus.Duplicate)
-                && Kind is not (TxKind.Transfer or TxKind.Payment);
+                && EffectiveDirection != TxDirection.Internal
+                && Kind != TxKind.Deposit;
 
             if (!counts)
             {

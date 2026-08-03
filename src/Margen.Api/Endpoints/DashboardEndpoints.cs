@@ -23,7 +23,13 @@ public static class DashboardEndpoints
             .RequireAuthorization(Auth.ScopePolicies.Full)
             .WithName("GetDashboard")
             .WithTags("Panel")
-            .WithSummary("La única pregunta: cuánto puedo gastar sin afectar mis compromisos.");
+            .WithSummary("La única pregunta: cuánto puedo gastar sin afectar mis compromisos.")
+
+            // Sin esto, el contrato describe la petición y no la respuesta, y
+            // el cliente no se puede generar de él. La prueba que busca cifras
+            // decimales en el contrato tampoco tendría nada que mirar: los
+            // montos viajan en la respuesta.
+            .Produces<DashboardView>();
 
         return app;
     }

@@ -1,7 +1,35 @@
 import '../core/money.dart';
 import '../core/period.dart';
 
-enum TxKind { purchase, withdrawal, payment, refund, transfer, fee, cash }
+enum TxKind {
+  purchase,
+  withdrawal,
+  payment,
+  refund,
+  transfer,
+  fee,
+  cash,
+
+  /// Dinero que entra: un depósito en cajero o en ventanilla. Salió de leer
+  /// los correos reales del banco y no estaba previsto.
+  deposit,
+}
+
+/// Hacia dónde va el dinero, en el sentido de todos los días.
+///
+/// Lo decide el servidor y llega resuelto. El cliente no lo deduce del tipo:
+/// una transferencia puede ser gasto o traspaso según a dónde fuera, y esa
+/// distinción la guarda el servidor porque la corrige el usuario.
+enum TxDirection {
+  /// Ingreso: el dinero entra y es tuyo para gastar.
+  inflow,
+
+  /// Egreso: el dinero sale y no vuelve.
+  outflow,
+
+  /// Traspaso: cambia de sitio dentro de lo tuyo. Ni ingreso ni gasto.
+  internal,
+}
 
 enum TxStatus { pending, posted, needsReview, duplicate, rejected, reconciled }
 
@@ -47,6 +75,8 @@ class TxRecord {
     required this.source,
     required this.category,
     required this.accountLastFour,
+    required this.direction,
+    required this.directionLabel,
     this.confidenceBasisPoints = 10000,
   });
 
@@ -59,6 +89,15 @@ class TxRecord {
   final TxSource source;
   final String category;
   final String accountLastFour;
+
+  /// Ingreso, egreso o traspaso. La decide el servidor.
+  final TxDirection direction;
+
+  /// Cómo se llama en pantalla: «Ingreso», «Egreso» o «Traspaso». La escribe el
+  /// servidor para que la palabra sea la misma en los dos sitios.
+  final String directionLabel;
+
+  bool get isIncome => direction == TxDirection.inflow;
 
   /// Confianza de la clasificación automática, en puntos básicos: 10000 es
   /// certeza. Es entero y no `double` por la misma razón que el dinero: se
@@ -73,12 +112,15 @@ class TxRecord {
 
   /// Un movimiento suma al gasto salvo que devuelva dinero o solo mueva saldo
   /// entre cuentas propias.
+  /// Réplica de `Transaction.AffectsSpending` del servidor, que es la que
+  /// manda. Aquí solo sirve para dibujar; ninguna cifra del panel sale de esto.
   bool get affectsSpending =>
       status != TxStatus.rejected &&
       status != TxStatus.duplicate &&
-      kind != TxKind.transfer &&
-      kind != TxKind.payment;
+      direction != TxDirection.internal &&
+      kind != TxKind.deposit;
 
+  /// Una devolución deshace un gasto. Un depósito no: es dinero nuevo.
   bool get isCredit => kind == TxKind.refund;
 }
 
@@ -203,4 +245,24 @@ class DashboardSnapshot {
 
   bool get runsOutEarly => projectedDepletion != null;
   int get daysLeft => period.daysRemainingFrom(today);
+}
+
+/// De qué tipo de operación se deduce cada dirección.
+///
+/// Es la contraparte de `Directions` en el servidor y existe solo para los
+/// datos de prueba y para dibujar: **la dirección que vale es la que manda el
+/// servidor**, porque el usuario puede corregirla y esa corrección se guarda
+/// allá.
+abstract final class Directions {
+  static TxDirection of(TxKind kind) => switch (kind) {
+        TxKind.deposit || TxKind.refund => TxDirection.inflow,
+        TxKind.payment => TxDirection.internal,
+        _ => TxDirection.outflow,
+      };
+
+  static String label(TxDirection direction) => switch (direction) {
+        TxDirection.inflow => 'Ingreso',
+        TxDirection.outflow => 'Egreso',
+        TxDirection.internal => 'Traspaso',
+      };
 }

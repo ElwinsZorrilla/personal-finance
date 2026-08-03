@@ -45,6 +45,18 @@ public class Transaction
     public TxSource Source { get; set; }
 
     /// <summary>
+    /// Ingreso, egreso o traspaso. Nace deducida de <see cref="Kind"/> y el
+    /// usuario la puede corregir.
+    /// </summary>
+    /// <remarks>
+    /// Se guarda en lugar de derivarse siempre porque hay un caso que el correo
+    /// del banco no resuelve: una transferencia enviada a tu propia cuenta de
+    /// ahorro no es un gasto y una enviada a otra persona sí, y el correo dice
+    /// lo mismo en los dos casos.
+    /// </remarks>
+    public TxDirection Direction { get; set; } = TxDirection.Outflow;
+
+    /// <summary>
     /// Confianza de la clasificación automática, en centésimas de 0 a 100.
     /// Es entero y no <c>double</c> por la misma razón que el dinero: se
     /// compara contra un umbral y un umbral con coma flotante da resultados
@@ -95,13 +107,24 @@ public class Transaction
     /// Una devolución sí entra: entra restando. Excluirla la dejaría fuera del
     /// gasto de su categoría, que es justo lo contrario de lo que hace una
     /// devolución.
+    ///
+    /// Un **depósito** no entra: es dinero nuevo, no un gasto negativo. Restarlo
+    /// de una categoría haría que ingresar dinero pareciera haber gastado
+    /// menos en comida.
+    ///
+    /// Lo que decide es <see cref="Direction"/> y no <see cref="Kind"/>, porque
+    /// una transferencia puede ser gasto o traspaso y solo el usuario lo sabe.
     /// </remarks>
     public bool AffectsSpending =>
         Status is not (TxStatus.Rejected or TxStatus.Duplicate)
-        && Kind is not (TxKind.Transfer or TxKind.Payment);
+        && Direction != TxDirection.Internal
+        && Kind != TxKind.Deposit;
 
     /// <summary>Devuelve dinero en lugar de gastarlo.</summary>
     public bool IsCredit => Kind == TxKind.Refund;
+
+    /// <summary>Entra dinero, sea devolución o depósito.</summary>
+    public bool IsIncome => Direction == TxDirection.Inflow;
 
     /// <summary>
     /// Aporte con signo al gasto del período. Es lo que suma el motor: el monto
@@ -110,4 +133,13 @@ public class Transaction
     public Money SpendingEffect => !AffectsSpending
         ? Money.Zero
         : IsCredit ? -Amount : Amount;
+
+    /// <summary>
+    /// Aporte con signo al saldo de la cuenta. Es otra pregunta distinta del
+    /// gasto: un pago de tarjeta baja el saldo sin ser gasto, y un depósito lo
+    /// sube sin reducir ninguna categoría.
+    /// </summary>
+    public Money BalanceEffect => Status is TxStatus.Rejected or TxStatus.Duplicate
+        ? Money.Zero
+        : Direction == TxDirection.Inflow ? Amount : -Amount;
 }

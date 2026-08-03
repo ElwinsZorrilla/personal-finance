@@ -15,7 +15,14 @@
         "operationId": "GetDashboard",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardView"
+                }
+              }
+            }
           }
         }
       }
@@ -37,8 +44,15 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionView"
+                }
+              }
+            }
           }
         }
       }
@@ -243,7 +257,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfTransactionView"
+                }
+              }
+            }
           }
         }
       }
@@ -267,7 +288,14 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionView"
+                }
+              }
+            }
           }
         }
       },
@@ -299,7 +327,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionView"
+                }
+              }
+            }
           }
         }
       }
@@ -312,7 +347,14 @@
         "operationId": "GetBudget",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetView"
+                }
+              }
+            }
           }
         }
       }
@@ -335,7 +377,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetView"
+                }
+              }
+            }
           }
         }
       }
@@ -496,6 +545,232 @@
   },
   "components": {
     "schemas": {
+      "AlertView": {
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "detail",
+          "isUrgent",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "isUrgent": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "BudgetLineView": {
+        "required": [
+          "categoryId",
+          "categoryName",
+          "priority",
+          "allocatedCents",
+          "adjustmentCents",
+          "effectiveCents",
+          "spentCents",
+          "availableCents",
+          "canBeTrimmed"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "allocatedCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "adjustmentCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "effectiveCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "spentCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "availableCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "canBeTrimmed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BudgetView": {
+        "required": [
+          "periodId",
+          "start",
+          "end",
+          "isClosed",
+          "totalAllocatedCents",
+          "totalSpentCents",
+          "trimmableCents",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "periodId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "isClosed": {
+            "type": "boolean"
+          },
+          "totalAllocatedCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "totalSpentCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "trimmableCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BudgetLineView"
+            }
+          }
+        }
+      },
+      "CategoryLineView": {
+        "required": [
+          "categoryId",
+          "name",
+          "priority",
+          "allocatedCents",
+          "spentCents",
+          "availableCents",
+          "projectedCents",
+          "willOverrun",
+          "canBeTrimmed"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "allocatedCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "spentCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "availableCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "projectedCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "willOverrun": {
+            "type": "boolean"
+          },
+          "canBeTrimmed": {
+            "type": "boolean"
+          }
+        }
+      },
       "ChallengeRequest": {
         "required": [
           "deviceId"
@@ -505,6 +780,43 @@
           "deviceId": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "CommitmentView": {
+        "required": [
+          "id",
+          "label",
+          "amountCents",
+          "priority",
+          "dueOn"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "amountCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "dueOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
           }
         }
       },
@@ -577,6 +889,281 @@
             ],
             "format": "int32",
             "default": 100
+          }
+        }
+      },
+      "DashboardView": {
+        "required": [
+          "period",
+          "safeToSpendCents",
+          "isOverdrawn",
+          "shortfallCents",
+          "deductions",
+          "totalDeductedCents",
+          "liquidCents",
+          "safeTodayCents",
+          "spentSoFarCents",
+          "expectedByNowCents",
+          "paceDeviationCents",
+          "projectedCloseCents",
+          "projectedDepletion",
+          "historicalBaseline",
+          "historicalPeriodsConsidered",
+          "categories",
+          "commitments",
+          "attention",
+          "recent"
+        ],
+        "type": "object",
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/PeriodView"
+          },
+          "safeToSpendCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "isOverdrawn": {
+            "type": "boolean"
+          },
+          "shortfallCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "deductions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeductionView"
+            }
+          },
+          "totalDeductedCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "liquidCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "safeTodayCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "spentSoFarCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "expectedByNowCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "paceDeviationCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "projectedCloseCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "projectedDepletion": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "historicalBaseline": {
+            "$ref": "#/components/schemas/MoneyValue"
+          },
+          "historicalPeriodsConsidered": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryLineView"
+            }
+          },
+          "commitments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommitmentView"
+            }
+          },
+          "attention": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlertView"
+            }
+          },
+          "recent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionView"
+            }
+          }
+        }
+      },
+      "DeductionView": {
+        "required": [
+          "kind",
+          "cents"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "cents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "MoneyValue": {
+        "required": [
+          "cents",
+          "unavailable"
+        ],
+        "type": "object",
+        "properties": {
+          "cents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "unavailable": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PageOfTransactionView": {
+        "required": [
+          "items",
+          "nextCursor",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionView"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "count": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PeriodView": {
+        "required": [
+          "start",
+          "end",
+          "today",
+          "totalDays",
+          "daysRemaining",
+          "elapsedDays"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          },
+          "today": {
+            "type": "string",
+            "format": "date"
+          },
+          "totalDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "daysRemaining": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "elapsedDays": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -682,6 +1269,97 @@
         "properties": {
           "label": {
             "type": "string"
+          }
+        }
+      },
+      "TransactionView": {
+        "required": [
+          "id",
+          "merchant",
+          "amountCents",
+          "currency",
+          "occurredAt",
+          "occurredOn",
+          "kind",
+          "direction",
+          "directionLabel",
+          "isIncome",
+          "status",
+          "source",
+          "categoryId",
+          "categoryName",
+          "accountLastFour",
+          "confidenceBasisPoints"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "merchant": {
+            "type": "string"
+          },
+          "amountCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "directionLabel": {
+            "type": "string"
+          },
+          "isIncome": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "categoryName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accountLastFour": {
+            "type": "string"
+          },
+          "confidenceBasisPoints": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       }

@@ -212,6 +212,7 @@ internal sealed class Seed
             Kind = kind,
             Status = status,
             Source = TxSource.Email,
+            Direction = Directions.Of(kind),
             RefundsTransactionId = refunds,
             Fingerprint = Guid.NewGuid().ToString("N"),
             CreatedAt = DateTime.UtcNow,

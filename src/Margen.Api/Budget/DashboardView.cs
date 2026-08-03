@@ -70,6 +70,16 @@ public sealed record TransactionView(
     DateTime OccurredAt,
     DateOnly OccurredOn,
     string Kind,
+
+    /// <summary>`Inflow`, `Outflow` o `Internal`.</summary>
+    string Direction,
+
+    /// <summary>«Ingreso», «Egreso» o «Traspaso». Lo escribe el servidor.</summary>
+    string DirectionLabel,
+
+    /// <summary>Entra dinero. Es lo que decide el signo en pantalla.</summary>
+    bool IsIncome,
+
     string Status,
     string Source,
     Guid? CategoryId,

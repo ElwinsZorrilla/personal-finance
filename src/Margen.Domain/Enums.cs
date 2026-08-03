@@ -20,6 +20,45 @@ public enum TxKind
 
     /// <summary>Efectivo registrado a mano o por el Atajo de iOS.</summary>
     Cash,
+
+    /// <summary>
+    /// Dinero que entra: un depósito en cajero o en ventanilla.
+    /// </summary>
+    /// <remarks>
+    /// Apareció leyendo los correos reales del banco —«Depósito por ATM»— y no
+    /// estaba en la lista. No es una devolución: una devolución deshace un
+    /// gasto de una categoría, un depósito es dinero nuevo que no descuenta de
+    /// ningún presupuesto.
+    /// </remarks>
+    Deposit,
+}
+
+/// <summary>
+/// Hacia dónde va el dinero, en el sentido de todos los días.
+/// </summary>
+/// <remarks>
+/// Es distinto de <see cref="TxKind"/>, que dice **qué operación** fue.
+/// «Transferencia» no dice si el dinero se fue o solo cambió de bolsillo, y esa
+/// es justo la pregunta que la pantalla necesita responder.
+///
+/// Se guarda en una columna en lugar de derivarse siempre del tipo, porque hay
+/// un caso que el correo del banco no puede resolver: una transferencia enviada
+/// a tu propia cuenta de ahorro no es un gasto, y una enviada a otra persona sí.
+/// El valor nace deducido del tipo y el usuario lo corrige cuando haga falta.
+/// </remarks>
+public enum TxDirection
+{
+    /// <summary>Ingreso: el dinero entra y es tuyo para gastar.</summary>
+    Inflow,
+
+    /// <summary>Egreso: el dinero sale y no vuelve.</summary>
+    Outflow,
+
+    /// <summary>
+    /// Traspaso: el dinero cambia de sitio dentro de lo tuyo. Ni ingreso ni
+    /// gasto; contarlo sería contar dos veces la misma plata.
+    /// </summary>
+    Internal,
 }
 
 public enum TxStatus

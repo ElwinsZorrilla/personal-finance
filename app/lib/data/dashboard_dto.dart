@@ -87,6 +87,8 @@ abstract final class DashboardDto {
       source: _txSource(_string(json, 'source')),
       category: json['categoryName'] as String? ?? 'Sin categoría',
       accountLastFour: _string(json, 'accountLastFour'),
+      direction: _direction(_string(json, 'direction')),
+      directionLabel: _string(json, 'directionLabel'),
       confidenceBasisPoints: _int(json, 'confidenceBasisPoints'),
     );
   }
@@ -114,6 +116,7 @@ abstract final class DashboardDto {
         'Transfer' => TxKind.transfer,
         'Fee' => TxKind.fee,
         'Cash' => TxKind.cash,
+        'Deposit' => TxKind.deposit,
         _ => TxKind.purchase,
       };
 
@@ -127,6 +130,16 @@ abstract final class DashboardDto {
 
         // Un estado que no se reconoce va a Revisión, no se da por asentado.
         _ => TxStatus.needsReview,
+      };
+
+  static TxDirection _direction(String raw) => switch (raw) {
+        'Inflow' => TxDirection.inflow,
+        'Internal' => TxDirection.internal,
+        'Outflow' => TxDirection.outflow,
+
+        // Lo desconocido se trata como egreso: contar de más es el error
+        // barato, contar de menos hace gastar dinero que no está.
+        _ => TxDirection.outflow,
       };
 
   static TxSource _txSource(String raw) => switch (raw) {

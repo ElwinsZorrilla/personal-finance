@@ -20,11 +20,13 @@ public static class BudgetEndpoints
 
         group.MapGet("/", GetAsync)
             .RequireAuthorization(ScopePolicies.Full)
-            .WithName("GetBudget");
+            .WithName("GetBudget")
+            .Produces<BudgetView>();
 
         group.MapPost("/redistribute", RedistributeAsync)
             .RequireAuthorization(ScopePolicies.Full)
-            .WithName("RedistributeBudget");
+            .WithName("RedistributeBudget")
+            .Produces<BudgetView>();
 
         return app;
     }
@@ -214,6 +216,7 @@ public static class BudgetEndpoints
                 t.Status,
                 t.OccurredAt,
                 t.RefundsTransactionId,
+                t.Direction,
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -225,7 +228,8 @@ public static class BudgetEndpoints
             r.Kind,
             r.Status,
             LocalTime.LocalDateOf(r.OccurredAt),
-            r.RefundsTransactionId))]);
+            r.RefundsTransactionId,
+            r.Direction))]);
     }
 
     internal static async Task<(Domain.Entities.BudgetPeriod? Period, BudgetCycle? Cycle, IResult? Error)>

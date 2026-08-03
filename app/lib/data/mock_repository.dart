@@ -117,6 +117,8 @@ abstract final class MockRepository {
           source: TxSource.email,
           category: 'Supermercado',
           accountLastFour: '4582',
+          direction: TxDirection.outflow,
+          directionLabel: 'Egreso',
         ),
         TxRecord(
           id: 't2',
@@ -128,6 +130,8 @@ abstract final class MockRepository {
           source: TxSource.shortcut,
           category: 'Restaurantes',
           accountLastFour: '0000',
+          direction: TxDirection.outflow,
+          directionLabel: 'Egreso',
         ),
         TxRecord(
           id: 't3',
@@ -139,6 +143,8 @@ abstract final class MockRepository {
           source: TxSource.email,
           category: 'Combustible',
           accountLastFour: '4582',
+          direction: TxDirection.outflow,
+          directionLabel: 'Egreso',
         ),
         TxRecord(
           id: 't4',
@@ -150,6 +156,8 @@ abstract final class MockRepository {
           source: TxSource.email,
           category: 'Sin categoría',
           accountLastFour: '4582',
+          direction: TxDirection.outflow,
+          directionLabel: 'Egreso',
           confidenceBasisPoints: 4100,
         ),
         TxRecord(
@@ -162,6 +170,8 @@ abstract final class MockRepository {
           source: TxSource.email,
           category: 'Compras personales',
           accountLastFour: '4582',
+          direction: TxDirection.outflow,
+          directionLabel: 'Egreso',
         ),
         TxRecord(
           id: 't6',
@@ -173,6 +183,8 @@ abstract final class MockRepository {
           source: TxSource.email,
           category: 'Transferencia',
           accountLastFour: '4582',
+          direction: TxDirection.outflow,
+          directionLabel: 'Egreso',
         ),
       ],
     );

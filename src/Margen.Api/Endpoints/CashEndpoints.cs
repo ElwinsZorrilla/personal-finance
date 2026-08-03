@@ -41,7 +41,8 @@ public static class CashEndpoints
             .RequireAuthorization(ScopePolicies.CashCreate)
             .RequireRateLimiting(RateLimits.QuickEntry)
             .WithName("CreateCashTransaction")
-            .WithTags("Efectivo");
+            .WithTags("Efectivo")
+            .Produces<TransactionView>(StatusCodes.Status201Created);
 
         return app;
     }
@@ -128,6 +129,7 @@ public static class CashEndpoints
             Kind = TxKind.Cash,
             Status = request.CategoryId is null ? TxStatus.NeedsReview : TxStatus.Posted,
             Source = TxSource.Shortcut,
+            Direction = Directions.Of(TxKind.Cash),
             Fingerprint = fingerprint,
             Notes = request.Notes,
             ConfidenceBasisPoints = request.CategoryId is null ? 0 : 10000,

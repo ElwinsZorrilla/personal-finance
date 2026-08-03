@@ -18,6 +18,8 @@ TxRecord _tx({
     source: TxSource.email,
     category: 'Comida',
     accountLastFour: '1234',
+    direction: Directions.of(kind),
+    directionLabel: 'Egreso',
   );
 }
 
@@ -46,9 +48,54 @@ void main() {
 
     test('un pago de tarjeta no cuenta como gasto', () {
       // Mueve saldo entre cuentas propias. Contarlo duplicaría el gasto: una
-      // vez al comprar con la tarjeta y otra al pagarla.
-      expect(_tx(kind: TxKind.payment).affectsSpending, isFalse);
-      expect(_tx(kind: TxKind.transfer).affectsSpending, isFalse);
+      // vez al comprar con la tarjeta y otra al pagarla. Es el único caso que
+      // el correo del banco resuelve solo.
+      final pago = _tx(kind: TxKind.payment);
+
+      expect(pago.direction, TxDirection.internal);
+      expect(pago.affectsSpending, isFalse);
+    });
+
+    test('una transferencia enviada si cuenta como gasto', () {
+      // Cambió al leer los correos reales: el Popular manda «Pagos al
+      // Instante transferencia enviada», que es dinero que se fue a otra
+      // persona. El correo dice que salió, no a dónde fue, y darlo por
+      // traspaso lo sacaría del gasto del período.
+      final enviada = _tx(kind: TxKind.transfer);
+
+      expect(enviada.direction, TxDirection.outflow);
+      expect(enviada.affectsSpending, isTrue);
+    });
+
+    test('marcada como traspaso deja de contar', () {
+      // El caso que el correo no puede resolver: una transferencia a tu propia
+      // cuenta de ahorro. La corrige el usuario desde Revisión.
+      final propia = TxRecord(
+        id: 'x',
+        merchant: 'A MI AHORRO',
+        amount: const Money(100000),
+        occurredAt: DateTime(2026, 8, 9),
+        kind: TxKind.transfer,
+        status: TxStatus.posted,
+        source: TxSource.email,
+        category: 'Ahorro',
+        accountLastFour: '1234',
+        direction: TxDirection.internal,
+        directionLabel: 'Traspaso',
+      );
+
+      expect(propia.affectsSpending, isFalse);
+    });
+
+    test('un deposito es ingreso y no reduce ninguna categoria', () {
+      // Es dinero nuevo, no un gasto negativo. La diferencia con la devolución:
+      // una devolución deshace un gasto concreto.
+      final deposito = _tx(kind: TxKind.deposit);
+
+      expect(deposito.direction, TxDirection.inflow);
+      expect(deposito.isIncome, isTrue);
+      expect(deposito.affectsSpending, isFalse);
+      expect(deposito.isCredit, isFalse);
     });
 
     test('un movimiento descartado no cuenta', () {
@@ -83,6 +130,8 @@ void main() {
         source: TxSource.email,
         category: 'Sin categoría',
         accountLastFour: '4582',
+        direction: TxDirection.outflow,
+        directionLabel: 'Egreso',
         confidenceBasisPoints: 4100,
       );
       expect(dudoso.isUncertain, isTrue);

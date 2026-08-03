@@ -286,7 +286,17 @@ public static class SampleCapture
             _ when s.Contains("retiro", StringComparison.Ordinal)
                 || s.Contains("cajero", StringComparison.Ordinal) => "retiro",
 
-            _ when s.Contains("transferenc", StringComparison.Ordinal) => "transferencia",
+            // «Depósito por ATM» salió como sin-clasificar en la primera
+            // captura real. Es dinero que entra, así que importa más que
+            // muchos de los que sí estaban en la lista.
+            _ when s.Contains("deposit", StringComparison.Ordinal)
+                || s.Contains("depósit", StringComparison.Ordinal)
+                || s.Contains("acredita", StringComparison.Ordinal) => "deposito",
+
+            // El Popular llama a sus transferencias «Pagos al Instante», que
+            // lleva la palabra «pago» y caía en pago-tarjeta.
+            _ when s.Contains("transferenc", StringComparison.Ordinal)
+                || s.Contains("al instante", StringComparison.Ordinal) => "transferencia",
 
             _ when s.Contains("pago", StringComparison.Ordinal) => "pago-tarjeta",
 

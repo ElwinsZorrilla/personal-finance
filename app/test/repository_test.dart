@@ -103,6 +103,9 @@ Map<String, dynamic> respuesta({
         'occurredAt': '2026-08-09T03:30:00Z',
         'occurredOn': '2026-08-08',
         'kind': 'Purchase',
+        'direction': 'Outflow',
+        'directionLabel': 'Egreso',
+        'isIncome': false,
         'status': 'Posted',
         'source': 'Email',
         'categoryId': '22222222-2222-2222-2222-222222222222',
@@ -211,6 +214,36 @@ void main() {
         () => DashboardDto.parse(json, fetchedAt: DateTime(2026, 8, 9)),
         throwsA(isA<ApiFailure>()),
       );
+    });
+
+    test('un deposito llega marcado como ingreso', () {
+      // Salió de leer los correos reales: «Depósito por ATM» es dinero que
+      // entra, y el cliente no lo deduce del tipo sino que lo recibe resuelto.
+      final json = respuesta();
+      (json['recent'] as List)[0]['kind'] = 'Deposit';
+      (json['recent'] as List)[0]['direction'] = 'Inflow';
+      (json['recent'] as List)[0]['directionLabel'] = 'Ingreso';
+
+      final s = DashboardDto.parse(json, fetchedAt: DateTime(2026, 8, 9));
+
+      expect(s.recent.single.direction, TxDirection.inflow);
+      expect(s.recent.single.isIncome, isTrue);
+      expect(s.recent.single.directionLabel, 'Ingreso');
+
+      // Un depósito no reduce ninguna categoría: es dinero nuevo, no un gasto
+      // negativo.
+      expect(s.recent.single.affectsSpending, isFalse);
+    });
+
+    test('una direccion desconocida cae del lado del egreso', () {
+      // Contar de más es el error barato; contar de menos hace gastar dinero
+      // que no está.
+      final json = respuesta();
+      (json['recent'] as List)[0]['direction'] = 'DireccionDelFuturo';
+
+      final s = DashboardDto.parse(json, fetchedAt: DateTime(2026, 8, 9));
+
+      expect(s.recent.single.direction, TxDirection.outflow);
     });
 
     test('un movimiento sin categoria no se queda sin etiqueta', () {

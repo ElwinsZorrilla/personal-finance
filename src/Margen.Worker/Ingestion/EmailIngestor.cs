@@ -258,6 +258,12 @@ public sealed class EmailIngestor(
             Kind = parsed.Kind,
             Status = probable ? TxStatus.Duplicate : TxStatus.NeedsReview,
             Source = TxSource.Email,
+
+            // Deducida del tipo, con la misma regla que usa la entidad al
+            // nacer. Una transferencia nace como egreso: el correo dice que
+            // el dinero salió, no a dónde fue, y contar de menos es el error
+            // que hace gastar dinero que no está.
+            Direction = Directions.Of(parsed.Kind),
             ConfidenceBasisPoints = 0,
             DuplicateOfTransactionId = probable ? check.MatchId : null,
             IncomingEmailId = stored.Id,

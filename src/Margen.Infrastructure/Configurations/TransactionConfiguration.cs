@@ -19,10 +19,13 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         builder.Property(t => t.Kind).HasConversion<string>().HasMaxLength(32);
         builder.Property(t => t.Status).HasConversion<string>().HasMaxLength(32);
         builder.Property(t => t.Source).HasConversion<string>().HasMaxLength(32);
+        builder.Property(t => t.Direction).HasConversion<string>().HasMaxLength(32);
 
         builder.Ignore(t => t.AffectsSpending);
         builder.Ignore(t => t.IsCredit);
         builder.Ignore(t => t.SpendingEffect);
+        builder.Ignore(t => t.BalanceEffect);
+        builder.Ignore(t => t.IsIncome);
 
         builder.HasOne(t => t.Account)
             .WithMany(a => a!.Transactions)
@@ -60,6 +63,10 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         builder.HasIndex(t => new { t.AccountId, t.OccurredAt });
         builder.HasIndex(t => new { t.CategoryId, t.OccurredAt });
         builder.HasIndex(t => t.Status);
+
+        // El panel separa ingresos de egresos, y la conciliación filtra por
+        // dirección: sin índice, las dos consultas recorren la tabla entera.
+        builder.HasIndex(t => new { t.Direction, t.OccurredAt });
         builder.HasIndex(t => t.MerchantNormalized);
 
         builder.ToTable(t =>

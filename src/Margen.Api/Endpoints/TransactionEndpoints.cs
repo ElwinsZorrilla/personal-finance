@@ -24,17 +24,20 @@ public static class TransactionEndpoints
 
         group.MapGet("/", ListAsync)
             .RequireAuthorization(ScopePolicies.Full)
-            .WithName("ListTransactions");
+            .WithName("ListTransactions")
+            .Produces<Page<TransactionView>>();
 
         group.MapGet("/{id:guid}", GetAsync)
             .RequireAuthorization(ScopePolicies.Full)
-            .WithName("GetTransaction");
+            .WithName("GetTransaction")
+            .Produces<TransactionView>();
 
         // PUT y no PATCH: el cuerpo reemplaza el estado clasificable entero y
         // un nulo borra. Ver PutTransactionRequest.
         group.MapPut("/{id:guid}", ReplaceAsync)
             .RequireAuthorization(ScopePolicies.Full)
-            .WithName("PutTransaction");
+            .WithName("PutTransaction")
+            .Produces<TransactionView>();
 
         return app;
     }

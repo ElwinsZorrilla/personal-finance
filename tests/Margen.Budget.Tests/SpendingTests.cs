@@ -145,8 +145,12 @@ public sealed class SpendingTests
     }
 
     [Fact]
-    public void una_transferencia_entre_cuentas_propias_no_es_gasto()
+    public void una_transferencia_enviada_si_es_gasto()
     {
+        // Cambió al leer los correos reales del banco: una transferencia
+        // enviada es dinero que se fue a otra persona. El correo dice que
+        // salió, no a dónde fue, y darla por traspaso la sacaría del gasto del
+        // período.
         var movimientos = new List<LedgerEntry>
         {
             new(
@@ -158,7 +162,68 @@ public sealed class SpendingTests
                 new DateOnly(2026, 7, 1)),
         };
 
+        Assert.Equal(new Money(2_000_000), Resumir(Ciclo(), movimientos).Total);
+    }
+
+    [Fact]
+    public void una_transferencia_marcada_como_traspaso_no_es_gasto()
+    {
+        // El caso que el correo no puede resolver: a tu propia cuenta de
+        // ahorro. Lo corrige el usuario y la dirección guardada manda.
+        var movimientos = new List<LedgerEntry>
+        {
+            new(
+                Guid.NewGuid(),
+                null,
+                new Money(2_000_000),
+                TxKind.Transfer,
+                TxStatus.Posted,
+                new DateOnly(2026, 7, 1),
+                Direction: TxDirection.Internal),
+        };
+
         Assert.Equal(Money.Zero, Resumir(Ciclo(), movimientos).Total);
+    }
+
+    [Fact]
+    public void un_deposito_no_reduce_ninguna_categoria()
+    {
+        // Es dinero nuevo, no un gasto negativo. Restarlo de Comida haría que
+        // ingresar dinero pareciera haber gastado menos.
+        var movimientos = new List<LedgerEntry>
+        {
+            Compra(Guid.NewGuid(), Comida, 100_000),
+            new(
+                Guid.NewGuid(),
+                Comida,
+                new Money(5_000_000),
+                TxKind.Deposit,
+                TxStatus.Posted,
+                new DateOnly(2026, 7, 1)),
+        };
+
+        SpendingSummary resumen = Resumir(Ciclo(), movimientos);
+
+        Assert.Equal(new Money(100_000), resumen.Total);
+        Assert.Equal(new Money(100_000), resumen.ByCategory[Comida]);
+    }
+
+    [Fact]
+    public void olvidar_la_direccion_da_el_resultado_correcto()
+    {
+        // La dirección se deduce del tipo cuando no se da. Con un valor fijo
+        // por defecto, quien construyera la entrada sin acordarse convertía un
+        // pago de tarjeta en gasto.
+        var pago = new LedgerEntry(
+            Guid.NewGuid(),
+            null,
+            new Money(1_500_000),
+            TxKind.Payment,
+            TxStatus.Posted,
+            new DateOnly(2026, 7, 1));
+
+        Assert.Equal(TxDirection.Internal, pago.EffectiveDirection);
+        Assert.Equal(Money.Zero, pago.SpendingEffect);
     }
 
     [Theory]

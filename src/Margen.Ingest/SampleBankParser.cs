@@ -134,6 +134,9 @@ public sealed partial class SampleBankParser : IEmailParser
             => TxKind.Payment,
         var s when s.Contains("Transferencia", StringComparison.OrdinalIgnoreCase)
             => TxKind.Transfer,
+        var s when s.Contains("Depósito", StringComparison.OrdinalIgnoreCase)
+            || s.Contains("Deposito", StringComparison.OrdinalIgnoreCase)
+            => TxKind.Deposit,
         _ => null,
     };
 

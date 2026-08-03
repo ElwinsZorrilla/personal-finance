@@ -160,6 +160,7 @@ public sealed class BudgetAssembler(MargenDbContext db, TimeProvider clock)
                 t.Status,
                 t.OccurredAt,
                 t.RefundsTransactionId,
+                t.Direction,
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -171,7 +172,8 @@ public sealed class BudgetAssembler(MargenDbContext db, TimeProvider clock)
             r.Kind,
             r.Status,
             LocalTime.LocalDateOf(r.OccurredAt),
-            r.RefundsTransactionId))];
+            r.RefundsTransactionId,
+            r.Direction))];
     }
 
     /// <summary>
@@ -424,6 +426,9 @@ public sealed class BudgetAssembler(MargenDbContext db, TimeProvider clock)
             t.OccurredAt,
             LocalTime.LocalDateOf(t.OccurredAt),
             t.Kind.ToString(),
+            t.Direction.ToString(),
+            Directions.Label(t.Direction),
+            t.IsIncome,
             t.Status.ToString(),
             t.Source.ToString(),
             t.CategoryId,
