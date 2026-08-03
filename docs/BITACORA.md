@@ -67,4 +67,24 @@ Una línea por iteración cerrada.
             formato, que es lo que el parser tiene que aprender
             docs/muestras/*.txt en .gitignore hasta que se lean
             falta que el humano corra la captura con su contraseña
+
+2026-08-03 · FASE-7 · parser del Banco Popular, desbloqueada y cerrada
+            CR-008 aprobada tras 4 vueltas · 3 Blockers y 5 Majors corregidos
+            las dos compuertas 1 en verde: 481 pruebas (390 .NET, 91 Flutter)
+            16 de 16 muestras reales leídas · 0 a revisión · 0 ajenas
+            cinco capturas hicieron falta: cada formato nuevo destapó una fuga
+            del redactor que ninguna revisión de código habría encontrado
+            la peor no fue una fuga sino lo contrario: la regla de los ocho
+            dígitos destruyó la fecha del depósito y dejó una muestra que
+            mentía sobre el formato · redactar de más no es la opción segura
+            el redactor llegó a consumir su propia salida: la X que ponía en la
+            referencia la releía el patrón de máscara con IgnoreCase
+            M5 no tenía síntoma · el separador etiqueta-valor cruzaba el salto
+            de línea y el comercio de los dos depósitos era el importe
+            tres formas de escribir la fecha en cuatro plantillas del mismo
+            banco: 26/07/2026, 12/6/2026 y 20260618
+            depósito = Ingreso, el resto Egreso · Directions decide, no la UI
+            faltan tres avisos que no estaban en los 209 correos del buzón:
+            compra rechazada, devolución y pago de tarjeta
+            deuda m23 pagada
 ```

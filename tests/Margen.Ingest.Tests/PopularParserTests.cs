@@ -68,13 +68,23 @@ public sealed class PopularParserTests
         </table></body></html>
         """;
 
+    /// <summary>
+    /// Depósito: la tercera forma de escribir la fecha del mismo banco.
+    /// </summary>
+    /// <remarks>
+    /// `20260618`, ocho dígitos pegados. Ni `26/07/2026` del texto plano ni
+    /// `12/6/2026` del HTML de transferencia. Que un banco escriba la fecha de
+    /// tres maneras en cuatro plantillas es el motivo por el que este parser se
+    /// escribe contra correos reales.
+    ///
+    /// Y no lleva estatus: la fila de valores general no la reconoce.
+    /// </remarks>
     private const string Deposito = """
         <html><body><table>
         <tr><td>Estimado (a) NOMBRE APELLIDO</td></tr>
-        <tr><td>A continuación, le informamos el detalle del depósito:</td></tr>
+        <tr><td>Le informamos que ha recibido en su cuenta terminada en 1234 .</td></tr>
         <tr><th>Monto </th><th>Fecha </th><th>Canal </th></tr>
-        <tr><th>RD&nbsp;1,111.11&nbsp;</th><td>18/6/2026</td><td>ATM</td></tr>
-        <tr><td>Cuenta terminada en 1234</td></tr>
+        <tr><th>RD&nbsp;1,111.11&nbsp;</th><td>20260618</td><td>NACIONAL_CHARLES_DE_GB CHS</td></tr>
         </table></body></html>
         """;
 
@@ -214,6 +224,59 @@ public sealed class PopularParserTests
         ParsedTransaction tx = Parser.Parse(Correo("Depósito por ATM", Deposito)).Transaction!;
 
         Assert.Equal(TxDirection.Inflow, Directions.Of(tx.Kind));
+    }
+
+    [Fact]
+    public void la_fecha_pegada_del_deposito_se_lee()
+    {
+        // `20260618`. Es también la que mi propio redactor destruyó en la
+        // captura anterior por parecerse a un número de cuenta.
+        ParsedTransaction tx = Parser.Parse(Correo(
+            "Depósito por ATM",
+            Deposito,
+            new DateTime(2026, 6, 19, 0, 36, 0, DateTimeKind.Utc))).Transaction!;
+
+        DateOnly local = DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTimeFromUtc(
+                tx.OccurredAtUtc,
+                TimeZoneInfo.FindSystemTimeZoneById("America/Santo_Domingo")));
+
+        Assert.Equal(new DateOnly(2026, 6, 18), local);
+    }
+
+    [Fact]
+    public void el_canal_del_deposito_no_es_el_monto()
+    {
+        // «Canal» es un encabezado sin valor al lado. Buscando el valor con un
+        // separador que cruzaba el salto de línea, devolvía la primera celda de
+        // la fila —el monto— y el comercio de todos los depósitos salía siendo
+        // la cifra.
+        ParsedTransaction tx = Parser.Parse(Correo("Depósito por ATM", Deposito)).Transaction!;
+
+        Assert.DoesNotContain("1,111.11", tx.MerchantRaw, StringComparison.Ordinal);
+        Assert.DoesNotContain("RD", tx.MerchantRaw, StringComparison.Ordinal);
+        Assert.Contains("NACIONAL", tx.MerchantRaw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void una_referencia_larga_no_se_confunde_con_una_fecha()
+    {
+        // Ocho dígitos seguidos pueden ser cualquier cosa. Se exige un año
+        // creíble para no tomar por fecha un número que empiece por veinte.
+        string conRuido = Deposito.Replace(
+            "<tr><th>Monto ",
+            "<tr><td>Referencia: 20991234</td></tr><tr><th>Monto ",
+            StringComparison.Ordinal);
+
+        ParsedTransaction tx = Parser.Parse(Correo("Depósito por ATM", conRuido)).Transaction!;
+
+        DateOnly local = DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTimeFromUtc(
+                tx.OccurredAtUtc,
+                TimeZoneInfo.FindSystemTimeZoneById("America/Santo_Domingo")));
+
+        // 2099-12-34 no es una fecha válida, así que se descarta y gana la real.
+        Assert.Equal(new DateOnly(2026, 6, 18), local);
     }
 
     [Fact]

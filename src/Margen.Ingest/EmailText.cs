@@ -73,7 +73,13 @@ public static partial class EmailText
         foreach (string label in labels)
         {
             var pattern = new Regex(
-                Regex.Escape(label) + @"\s*:?\s*(?<valor>[^\r\n]+)",
+                // El separador entre la etiqueta y su valor **no cruza el salto
+                // de línea**. Con `\s*` sí lo cruzaba, y en una tabla aplanada
+                // eso hacía que «Canal» —que es un encabezado sin valor al
+                // lado— devolviera la primera celda de la fila de valores, que
+                // es el monto. El comercio de todos los depósitos salía siendo
+                // la cifra.
+                Regex.Escape(label) + @"[ \t]*:?[ \t]*(?<valor>[^\r\n]+)",
                 RegexOptions.IgnoreCase,
                 TimeSpan.FromSeconds(2));
 

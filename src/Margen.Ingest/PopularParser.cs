@@ -197,21 +197,44 @@ public sealed partial class PopularParser : IEmailParser
     }
 
     /// <summary>
-    /// La fecha. Acepta `26/07/2026` y `12/6/2026`: el texto plano rellena con
-    /// cero y el HTML no.
+    /// La fecha, en las tres formas que usa el banco.
     /// </summary>
+    /// <remarks>
+    /// `26/07/2026` en el texto plano, `12/6/2026` en el HTML de transferencia
+    /// —sin cero delante— y `20260618` en el de depósito, ocho dígitos pegados.
+    ///
+    /// Que un mismo banco escriba la fecha de tres maneras en cuatro plantillas
+    /// no es una anécdota: es el motivo por el que este parser se escribe contra
+    /// correos reales y no contra un formato supuesto.
+    /// </remarks>
+    private static readonly string[] DayFormats =
+    [
+        "dd/MM/yyyy", "d/M/yyyy", "dd/M/yyyy", "d/MM/yyyy", "yyyyMMdd",
+    ];
+
     private static DateOnly? ReadDay(string text)
     {
-        Match match = DayPattern().Match(text);
-        if (!match.Success) return null;
-
-        string raw = match.Groups["fecha"].Value;
-
-        foreach (string format in new[] { "dd/MM/yyyy", "d/M/yyyy", "dd/M/yyyy", "d/MM/yyyy" })
+        foreach (Match match in DayPattern().Matches(text))
         {
-            if (DateOnly.TryParseExact(
-                    raw, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly day))
+            string raw = match.Groups["fecha"].Value;
+
+            foreach (string format in DayFormats)
             {
+                if (!DateOnly.TryParseExact(
+                        raw,
+                        format,
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out DateOnly day))
+                {
+                    continue;
+                }
+
+                // Ocho dígitos seguidos pueden ser cualquier cosa. Se exige un
+                // año creíble para no tomar por fecha un número de referencia
+                // que casualmente empiece por veinte.
+                if (day.Year is < 2000 or > 2100) continue;
+
                 return day;
             }
         }
@@ -255,6 +278,19 @@ public sealed partial class PopularParser : IEmailParser
         };
 
         if (labelled is not null && !IsTableHeader(labelled)) return Clean(labelled);
+
+        // El depósito tiene su propia tabla aplanada —monto, fecha sin
+        // separadores y canal— y no lleva estatus, así que la fila de valores
+        // general no la reconoce.
+        if (kind == TxKind.Deposit)
+        {
+            Match deposit = DepositRowPattern().Match(text);
+            if (deposit.Success)
+            {
+                string canal = Clean(deposit.Groups["canal"].Value);
+                if (canal.Length > 0) return canal;
+            }
+        }
 
         // Tabla aplanada: la fila de valores va después de la de encabezados y
         // el nombre puede partirse en dos líneas.
@@ -345,7 +381,9 @@ public sealed partial class PopularParser : IEmailParser
         RegexOptions.IgnoreCase, 2000)]
     private static partial Regex AmountPattern();
 
-    [GeneratedRegex(@"(?<fecha>\d{1,2}/\d{1,2}/\d{4})", RegexOptions.None, 2000)]
+    [GeneratedRegex(
+        @"(?<fecha>\d{1,2}/\d{1,2}/\d{4}|(?<!\d)20\d{6}(?!\d))",
+        RegexOptions.None, 2000)]
     private static partial Regex DayPattern();
 
     [GeneratedRegex(
@@ -366,6 +404,16 @@ public sealed partial class PopularParser : IEmailParser
         @"(?:RD\$?|US\$?)\s*[\d,]+(?:\.\d{1,2})?\s*(?:Peso dominicano|D[oó]lar[^\d]{0,20})?\s*\d{1,2}/\d{1,2}/\d{4}\s*(?<comercio>[^\r\n]*(?:\r?\n[^\r\n]*?)?)\s*(?<estatus>Aprobad\w*|Declinad\w*|Rechazad\w*|Procesad\w*|Denegad\w*)",
         RegexOptions.IgnoreCase, 2000)]
     private static partial Regex FlattenedRowPattern();
+
+    /// <summary>
+    /// La fila de valores del depósito: monto, fecha pegada y canal.
+    /// </summary>
+    [GeneratedRegex(
+        @"(?:RD\$?|US\$?)\s*[\d,]+(?:\.\d{1,2})?\s*(?<fecha>20\d{6})\s*(?<canal>[^
+
+]+)",
+        RegexOptions.IgnoreCase, 2000)]
+    private static partial Regex DepositRowPattern();
 
     [GeneratedRegex(
         @"declinad|rechazad|no\s+aprobad|denegad",
