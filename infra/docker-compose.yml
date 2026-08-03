@@ -129,9 +129,23 @@ services:
       TZ: America/Santo_Domingo
     volumes:
       - ./backup.sh:/usr/local/bin/backup.sh:ro
+      # La verificación y la restauración van montadas aparte y a propósito: la
+      # primera crea una base descartable y no puede hacer daño; la segunda
+      # destruye la de producción y se ejecuta a mano. Fundirlas en un guion con
+      # una bandera es como se acaba escribiendo la bandera equivocada a las
+      # tres de la mañana.
+      - ./verificar-restauracion.sh:/usr/local/bin/verificar-restauracion.sh:ro
+      - ./restaurar.sh:/usr/local/bin/restaurar.sh:ro
       - ${BACKUP_PATH:-./backups}:/backups
     networks:
       - internal
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     entrypoint: ["/bin/sh", "/usr/local/bin/backup.sh"]
 
 networks:

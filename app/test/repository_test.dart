@@ -272,6 +272,62 @@ void main() {
       expect(await store.read('dashboard.v1'), isNotNull);
     });
 
+    test('una lectura caducada no se enseña como si fuera de ahora', () async {
+      // «Cuánto puedo gastar» se lee de un vistazo, y una cifra de hace un mes
+      // se parece demasiado a una de hoy. Pasado el plazo, la app dice que no
+      // pudo cargar en vez de enseñar algo viejo.
+      final store = MemoryStore();
+      var ahora = DateTime(2026, 8, 9, 7, 30);
+      var falla = false;
+
+      final repo = RemoteDashboardRepository(
+        api: _Api(() async {
+          if (falla) {
+            throw const ApiFailure(ApiFailureKind.unreachable, 'sin red');
+          }
+          return respuesta();
+        }),
+        store: store,
+        now: () => ahora,
+      );
+
+      await repo.load();
+      falla = true;
+      ahora = ahora.add(RemoteDashboardRepository.cacheLifetime).add(
+            const Duration(minutes: 1),
+          );
+
+      expect(() => repo.load(), throwsA(isA<ApiFailure>()));
+    });
+
+    test('dentro del plazo la lectura guardada si vale', () async {
+      // El plazo es largo a propósito: la caché solo aparece cuando el
+      // servidor no responde, y uno corto la volvería inútil justo el fin de
+      // semana que se cae.
+      final store = MemoryStore();
+      var ahora = DateTime(2026, 8, 9, 7, 30);
+      var falla = false;
+
+      final repo = RemoteDashboardRepository(
+        api: _Api(() async {
+          if (falla) {
+            throw const ApiFailure(ApiFailureKind.unreachable, 'sin red');
+          }
+          return respuesta();
+        }),
+        store: store,
+        now: () => ahora,
+      );
+
+      await repo.load();
+      falla = true;
+      ahora = ahora.add(const Duration(hours: 71));
+
+      final s = await repo.load();
+
+      expect(s.isFromCache, isTrue);
+    });
+
     test('sin señal devuelve la ultima lectura y lo dice', () async {
       // Es el criterio de la fase: abrir la app sin señal y ver el último
       // panel conocido, con la fecha de esa lectura.

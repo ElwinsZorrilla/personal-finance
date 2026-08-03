@@ -25,8 +25,8 @@ public sealed class PostgresFixture : IAsyncLifetime
     private const string Image = "postgres:16-alpine";
 
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder(Image)
-        .WithDatabase("margen_test")
-        .WithUsername("margen")
+        .WithDatabase(Database)
+        .WithUsername(User)
 
         // Se genera en cada ejecución. Una contraseña escrita en el archivo,
         // aunque sea de un contenedor que vive treinta segundos, es una
@@ -56,6 +56,31 @@ public sealed class PostgresFixture : IAsyncLifetime
         await using var db = new MargenDbContext(options);
         await db.Database.MigrateAsync();
     }
+
+    /// <summary>
+    /// Corre una orden **dentro** del contenedor y devuelve lo que escribió.
+    /// </summary>
+    /// <remarks>
+    /// Existe para la prueba de restauración: `pg_dump` y `pg_restore` viven en
+    /// la imagen de Postgres, no en la máquina que corre las pruebas, y
+    /// exigirlos instalados fuera haría que la prueba pasara en un sitio y
+    /// fallara en otro por algo que no tiene que ver con el respaldo.
+    /// </remarks>
+    public async Task<(long ExitCode, string Stdout, string Stderr)> RunAsync(params string[] command)
+    {
+        var result = await _container.ExecAsync(command);
+
+        // Un código de salida ausente no es un éxito. Traducirlo a cero haría
+        // que una orden que ni siquiera llegó a correr pasara por buena, que es
+        // justo lo que estas pruebas existen para impedir.
+        return (result.ExitCode ?? -1, result.Stdout, result.Stderr);
+    }
+
+    /// <summary>Los mismos valores con que se construye el contenedor.</summary>
+    public const string Database = "margen_test";
+
+    /// <summary>Ver <see cref="Database"/>.</summary>
+    public const string User = "margen";
 
     public async Task DisposeAsync() => await _container.DisposeAsync();
 }

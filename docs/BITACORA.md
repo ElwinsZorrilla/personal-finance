@@ -190,4 +190,27 @@ Una línea por iteración cerrada.
             tres bancos y CERO cambios en clasificación, conciliación y
             presupuesto · lo único compartido que se tocó fue el redactor
             deuda abierta: m33 (avisos que faltan de Banreservas)
+
+2026-08-03 · FASE-12 · endurecimiento y despliegue
+            CR-014 aprobada tras 1 vuelta · 1 Blocker corregido
+            las dos compuertas 1 en verde: 823 pruebas (730 .NET, 93 Flutter)
+            EL DESPLIEGUE NO SE EJECUTA: toca producción y credenciales, que es
+            condición de parada · runbook escrito en docs/despliegue.md
+            B1: había UN SOLO RESPALDO y se sobrescribía cada día · el sello se
+            calculaba fuera del bucle · llevaba desde la Fase 1 y pasó por trece
+            revisiones · lo destapó preguntarse qué archivos habría tras un mes
+            la retención de 14 días nunca tuvo nada que borrar, y ese era el
+            síntoma visible: una carpeta con un archivo
+            «restauración probada» se escribe como PRUEBA, no como frase: dump
+            real, base descartable, --exit-on-error, y se cuentan filas y tipos
+            sin --exit-on-error, pg_restore informa de los errores y TERMINA CON
+            ÉXITO, así que un respaldo irrecuperable pasaría
+            se comprueba que el dinero sigue siendo bigint DESPUÉS de restaurar
+            dos guiones y no uno con bandera: verificar no puede hacer daño,
+            restaurar destruye y pide confirmación
+            pagadas m6, m8 y m21 · reprogramadas m16, m17, m18, m24, m27, m28,
+            m29 y m30, todas con motivo
+            m16, m27 y m30 se desbloquean AL DESPLEGAR, no antes: sin producción
+            no hay nada que medir
+            deuda abierta: m34 (el despliegue, que lo hace el humano)
 ```

@@ -1,94 +1,30 @@
 # Estado
 
-Fase: 10 - Conciliación
-Rama: fase/10-conciliacion
-Estado: **cerrada**
+Fase: 12 - Endurecimiento y despliegue
+Rama: fase/12-despliegue
+Estado: **cerrada en lo que se puede construir**
 Paso: 7 de 7 (NEXT)
 Vuelta: 1 de 3
 Compuerta 1: verde en las dos
-Revisión: CR-011 aprobada · CR-012 y CR-013 (segundo y tercer banco)
-Veredicto: **APROBADA**
+Revisión: CR-014 aprobada
+Veredicto: **APROBADA, con el despliegue pendiente del humano**
 Bloqueo: -
 
-## Varios bancos
+## El despliegue lo haces tú
 
-El buzón tiene **más de un banco**. El registro de parsers, la lista blanca de
-remitentes y el redactor ya eran multibanco desde la Fase 6; la **captura de
-muestras** no, y se arregló en esta fase:
+Desplegar toca producción y credenciales, que es condición de parada del
+`LOOP.md`. Está todo construido y verificado; el arranque está escrito paso a
+paso en [`docs/despliegue.md`](despliegue.md).
 
-- La cuota de muestras es por **banco y tipo**. Era global, así que los seis
-  primeros consumos del primer banco la agotaban y de los demás no se capturaba
-  ninguno.
-- Las muestras llevan el banco en el nombre: `popularenlinea-compra-aprobada.txt`.
-  Sin eso, con tres bancos ninguna muestra sirve para escribir ningún parser.
+Lo que sí se puede afirmar sin desplegar:
 
-**Para añadir un banco**: poner su remitente en `IMAP_ALLOWED_SENDERS`, correr
-la captura, leer las muestras y escribir su `IEmailParser`. El registro elige
-por remitente, así que el banco nuevo no toca a los que ya funcionan.
-
-| Banco | Parser | Muestras |
-|---|---|---|
-| Banco Popular | Escrito y aprobado (CR-008) | 16, faltan 3 tipos |
-| Qik Banco Digital | Escrito y aprobado (CR-012) | 6, solo avisos de tarjeta |
-| Banco de Reservas | Escrito y aprobado (CR-013) | 6, consumos y retiros |
-| Los demás | **Pendiente** | **Pendientes de capturar** |
-
-Contra las 28 muestras reales: **25 leídas, 3 a revisión, 0 ajenas**. Las tres
-son compras que Qik declinó y que no crean movimiento.
-
-**Cada banco rompe una suposición distinta**, y por eso ninguna se ve hasta que
-llega el siguiente:
-
-| Suposición | Quién la rompe |
-|---|---|
-| «La fecha tiene un formato» | El Popular la escribe de tres maneras |
-| «El asunto dice el tipo» | Qik: sus tres asuntos salen en aprobadas y declinadas |
-| «El asunto dice algo» | Banreservas: los seis correos llevan el mismo |
-| «El reloj es de doce horas» | Banreservas escribe `19:43 PM` |
-| «El día va antes que el mes» | Qik escribe `06-20-2026`; Banreservas, `08/07/2026` |
-
-Son cinco formas de escribir una fecha y **dos bancos del mismo país con el
-orden opuesto**. Ningún parser adivina el formato.
-
-## La conciliación
-
-Un **perfil por banco** dice qué columna del CSV es cuál. Se escribe una vez, se
-ve una vista previa y a partir de ahí importar el estado de cuenta del mes es
-subir un archivo.
-
-El mapeo de columnas es la respuesta a no conocer el formato de antemano, no un
-sustituto de conocerlo. Lo explícito es explícito a propósito:
-
-| Qué | Por qué no se adivina |
-|---|---|
-| Formato de fecha | `01/02/2026` es el 1 de febrero o el 2 de enero según el banco |
-| Estilo decimal | `1.234,56` leído mal da 1,23 |
-| Signo | Hay bancos que escriben los cargos en positivo |
-
-Se detecta solo el separador —por consistencia de columnas, no por frecuencia—
-y la codificación —UTF-8 o Latin-1—.
-
-| Estado | Qué se hace al importar |
-|---|---|
-| Conciliado | El movimiento pasa a `Reconciled` |
-| **Ausente** | **Se crea**, en revisión y sin categoría |
-| Pendiente | Nada; sale en el informe |
-| Discrepante | Nada: hay dos cifras y elegirlas sin preguntar no se hace |
-| Duplicado | Nada: dos candidatos iguales no se desempatan al azar |
-
-Lo ausente es el motivo entero de conciliar: el efectivo que nadie registró, los
-correos que no llegaron y **los bancos que todavía no tienen parser** aparecen
-ahí.
-
-## El cierre de período
-
-`POST /periods/{id}/close` cierra y devuelve qué asignar en el siguiente, sacado
-de **lo que se gastó de verdad**: un presupuesto que se copia a sí mismo mes tras
-mes repite el error del primer mes para siempre.
-
-Si no cabe en el ingreso se recorta por prioridad, y lo Esencial y lo Importante
-no se tocan. Si aun así no cabe, **se dice**: no es un fallo del cálculo, es que
-los compromisos no caben en el sueldo.
+- El compose es válido y **ningún servicio publica un puerto al host**. El único
+  camino de entrada es el proxy, y la base vive en una red sin salida.
+- **El respaldo se restaura de verdad**, y hay una prueba que lo comprueba en
+  cada tanda: `pg_dump` real, base descartable, `pg_restore --exit-on-error`, y
+  se cuentan las filas y los tipos.
+- Los secretos y su rotación están en [`docs/secretos.md`](secretos.md), y
+  ninguno está en el repositorio.
 
 ## Lo hecho
 
@@ -107,8 +43,9 @@ los compromisos no caben en el sueldo.
 
 | — · Segundo banco: Qik | Cerrado | CR-012 | 18 en `Ingest` |
 | — · Tercer banco: Banreservas | Cerrado | CR-013 | 19 en `Ingest` |
+| 12 · Endurecimiento y despliegue | Cerrada | CR-014 | 3 de respaldo + 2 de caché |
 
-**818 pruebas**: 727 en .NET, 91 en Flutter. Las dos compuertas 1 en verde.
+**823 pruebas**: 730 en .NET, 93 en Flutter. Las dos compuertas 1 en verde.
 Cobertura de `Margen.Classify`: 99,8 % de líneas, 98,3 % de ramas.
 
 ## Lo que necesito del humano
@@ -130,20 +67,25 @@ Cobertura de `Margen.Classify`: 99,8 % de líneas, 98,3 % de ramas.
 
 ## Lo que sigue
 
-**Fase 12 - endurecimiento y despliegue.** Es la última que no depende de nadie.
+**Ya no queda ninguna fase que yo pueda abrir.** Todo lo que falta depende de
+ti:
 
-**Fase 11 - empaquetado iOS.** Depende de ADR-001, sin responder.
+1. **Desplegar.** El runbook está en [`docs/despliegue.md`](despliegue.md).
+   Hasta que el stack corra contra datos de verdad, tres deudas de rendimiento
+   —m16, m27, m30— no se pueden pagar: su condición es «con medición real», y
+   medir sobre datos sembrados mediría los datos sembrados.
+2. **Responder ADR-001**, que desbloquea la Fase 11.
 
-Y en paralelo, cuando haya muestras: **un parser por cada banco nuevo**. No es
-una fase; es trabajo que se hace cada vez que aparece un banco, y el andamiaje
-ya está.
+Y cuando aparezca un banco nuevo: **un parser más**. No es una fase; es trabajo
+que se hace cada vez, y el andamiaje ya está probado tres veces.
 
 ## Notas de entorno
 
 - Remoto `origin` en `github.com/ElwinsZorrilla/personal-finance`. Ramas:
   `main`, `fase/2-base-api`, `fase/3-motor-presupuesto`, `fase/4-endpoints`,
   `fase/5-datos-flutter`, `fase/6-ingesta-correo`, `fase/7-parser-banco`,
-  `fase/8-clasificacion`, `fase/9-efectivo-iphone`, `fase/10-conciliacion`.
+  `fase/8-clasificacion`, `fase/9-efectivo-iphone`, `fase/10-conciliacion`,
+  `bancos/qik`, `bancos/banreservas`, `fase/12-despliegue`.
 - .NET 10.0.204, Docker 29.5.3 y Flutter 3.44.5. Flutter está en
   `C:\src\flutter` pero **no en el PATH**: hay que añadirlo a mano.
 - Regenerar el contrato tras cambiar la superficie del API:

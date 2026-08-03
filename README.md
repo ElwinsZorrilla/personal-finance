@@ -33,6 +33,8 @@ src/          .NET. Servidor.
 tests/        Pruebas del servidor. Las de integración usan Postgres real.
 docs/         Sistema visual, decisiones, revisiones, deuda, briefs, planes.
   atajo.md      Cómo montar el Atajo de iOS. Sin secretos dentro.
+  despliegue.md Runbook del despliegue. Lo ejecuta una persona.
+  secretos.md   Qué abre cada secreto y cómo se rota.
   api/          Contrato OpenAPI versionado. Se regenera, no se edita.
 infra/        Stack de Docker para el servidor.
 ```
@@ -115,4 +117,4 @@ Y se lee `git diff --cached` buscando secretos.
 | 9 | Efectivo desde el iPhone | Cerrada (CR-010) |
 | 10 | Conciliación | Cerrada (CR-011) |
 | 11 | Empaquetado iOS | Depende de ADR-001 |
-| 12 | Endurecimiento y despliegue | |
+| 12 | Endurecimiento y despliegue | Cerrada (CR-014). Desplegar lo hace el humano |

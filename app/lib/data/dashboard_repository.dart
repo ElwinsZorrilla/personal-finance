@@ -31,6 +31,22 @@ class RemoteDashboardRepository implements DashboardRepository {
 
   static const _cacheKey = 'dashboard.v1';
 
+  /// Cuánto vale la última lectura guardada.
+  ///
+  /// Pasado ese tiempo se descarta y la app dice que no pudo cargar, en vez de
+  /// enseñar cifras de hace un mes.
+  ///
+  /// Setenta y dos horas y no una: la caché solo aparece cuando el servidor no
+  /// responde, y en ese caso lo útil es tener algo. Un límite corto la volvería
+  /// inútil justo el fin de semana que se cae el servidor, que es cuando hace
+  /// falta.
+  ///
+  /// Lo que no puede pasar es que no caduque nunca. La pantalla lleva la fecha
+  /// de la lectura, así que no engaña a quien la mire; pero «cuánto puedo
+  /// gastar» se lee de un vistazo, y una cifra de hace un mes se parece
+  /// demasiado a una de hoy.
+  static const cacheLifetime = Duration(hours: 72);
+
   final ApiClient _api;
   final LocalStore _store;
   final DateTime Function() _now;
@@ -86,6 +102,10 @@ class RemoteDashboardRepository implements DashboardRepository {
           DateTime.tryParse(envelope['fetchedAt'] as String? ?? '');
       final body = envelope['body'];
       if (fetchedAt == null || body is! Map<String, dynamic>) return null;
+
+      // Caducada es lo mismo que no existir. El llamador propaga el fallo de
+      // red, que es la verdad: no se pudo saber cuánto queda.
+      if (_now().difference(fetchedAt) > cacheLifetime) return null;
 
       return DashboardDto.parse(body, fetchedAt: fetchedAt, isFromCache: true);
     } on FormatException {
