@@ -270,4 +270,58 @@ public sealed class AuthTests(PostgresFixture postgres)
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+    [Fact]
+    public async Task una_firma_del_navegador_tambien_vale()
+    {
+        // **La PWA es el único cliente que existe desde ADR-001**, y WebCrypto
+        // no firma en DER: produce los dos enteros concatenados en crudo.
+        //
+        // La verificación solo aceptaba DER —el formato de `SecKeyCreateSignature`
+        // de iOS, de cuando la app iba a ser nativa—, así que ninguna firma del
+        // navegador validaba jamás. El servidor respondía «firma inválida», que
+        // era justo lo que no pasaba: la firma era correcta y solo venía
+        // envuelta de otra manera.
+        await using var app = new TestApp(postgres.ConnectionString, null);
+        using HttpClient client = app.CreateClient();
+        using var key = new TestDeviceKey();
+
+        Guid deviceId = await AuthFlow.RegisterAsync(client, app.EnrollmentCode, key);
+        ChallengeResponse challenge = await AuthFlow.ChallengeAsync(client, deviceId);
+
+        HttpResponseMessage response = await client.PostAsJsonAsync(
+            "/auth/tokens",
+            new RedeemRequest(
+                deviceId,
+                challenge.Nonce,
+                key.SignAsBrowser(deviceId, challenge.Nonce)));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        TokenResponse token = (await response.Content.ReadFromJsonAsync<TokenResponse>())!;
+        Assert.NotEmpty(token.Token);
+    }
+
+    [Fact]
+    public async Task una_firma_de_otra_clave_sigue_sin_valer()
+    {
+        // Aceptar dos formatos no puede aceptar dos claves. Es la prueba de que
+        // la comprobación de arriba no aflojó la verificación.
+        await using var app = new TestApp(postgres.ConnectionString, null);
+        using HttpClient client = app.CreateClient();
+        using var key = new TestDeviceKey();
+        using var intrusa = new TestDeviceKey();
+
+        Guid deviceId = await AuthFlow.RegisterAsync(client, app.EnrollmentCode, key);
+        ChallengeResponse challenge = await AuthFlow.ChallengeAsync(client, deviceId);
+
+        HttpResponseMessage response = await client.PostAsJsonAsync(
+            "/auth/tokens",
+            new RedeemRequest(
+                deviceId,
+                challenge.Nonce,
+                intrusa.SignAsBrowser(deviceId, challenge.Nonce)));
+
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
 }

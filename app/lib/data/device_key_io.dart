@@ -25,7 +25,7 @@ class UnsupportedDeviceKey implements DeviceKey {
   Future<String> ensureKeyPair() async => _no();
 
   @override
-  Future<String> sign(String nonceBase64) async => _no();
+  Future<String> sign(List<int> payload) async => _no();
 
   @override
   Future<bool> exists() async => false;

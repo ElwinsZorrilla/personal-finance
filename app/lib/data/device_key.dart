@@ -19,8 +19,12 @@ abstract interface class DeviceKey {
   /// dejaría al dispositivo sin poder firmar los retos de su propia alta.
   Future<String> ensureKeyPair();
 
-  /// Firma un reto del servidor y devuelve la firma en base64.
-  Future<String> sign(String nonceBase64);
+  /// Firma unos bytes y devuelve la firma en base64.
+  ///
+  /// Recibe los bytes ya construidos y no el reto: **qué se firma exactamente
+  /// es un contrato con el servidor** y vive en `DeviceAuth`, no aquí. Esta
+  /// capa solo sabe de claves.
+  Future<String> sign(List<int> payload);
 
   /// Si este dispositivo ya tiene una clave.
   Future<bool> exists();

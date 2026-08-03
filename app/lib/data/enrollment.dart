@@ -1,4 +1,5 @@
 import 'api_client.dart';
+import 'device_auth.dart';
 import 'device_key.dart';
 import 'local_store.dart';
 
@@ -115,7 +116,13 @@ class Enrollment {
       );
     }
 
-    final firma = await _key.sign(nonce);
+    // El mensaje lo construye `DeviceAuth`, que es el espejo del contrato del
+    // servidor. La primera versión firmaba el reto decodificado, porque un
+    // comentario lo afirmaba: el servidor firma contexto, dispositivo y reto
+    // como texto, y aquella firma no validaba nunca.
+    final firma = await _key.sign(
+      DeviceAuth.payload(deviceId: deviceId, nonce: nonce),
+    );
 
     final canje = await _api.postJson(
       '/auth/tokens',

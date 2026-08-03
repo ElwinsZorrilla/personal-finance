@@ -29,5 +29,21 @@ public sealed class TestDeviceKey : IDisposable
             HashAlgorithmName.SHA256,
             DSASignatureFormat.Rfc3279DerSequence));
 
+    /// <summary>
+    /// Firma en el formato crudo que produce **WebCrypto**: los dos enteros
+    /// concatenados, sin envoltura DER.
+    /// </summary>
+    /// <remarks>
+    /// Es lo que manda la PWA, que es el único cliente que existe desde
+    /// ADR-001. La verificación solo aceptaba DER —el formato de iOS— y así
+    /// ninguna firma del navegador validaba nunca, con el mensaje «firma
+    /// inválida»: exactamente lo que no era.
+    /// </remarks>
+    public string SignAsBrowser(Guid deviceId, string nonce) =>
+        Convert.ToBase64String(_key.SignData(
+            DeviceAuth.BuildSigningPayload(deviceId, nonce),
+            HashAlgorithmName.SHA256,
+            DSASignatureFormat.IeeeP1363FixedFieldConcatenation));
+
     public void Dispose() => _key.Dispose();
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:margen/data/api_client.dart';
+import 'package:margen/data/device_auth.dart';
 import 'package:margen/data/device_key.dart';
 import 'package:margen/data/enrollment.dart';
 import 'package:margen/data/local_store.dart';
@@ -12,7 +13,7 @@ class _ClaveFalsa implements DeviceKey {
 
   bool tiene;
   int generaciones = 0;
-  final List<String> firmados = [];
+  final List<List<int>> firmados = [];
 
   @override
   Future<bool> exists() async => tiene;
@@ -27,18 +28,19 @@ class _ClaveFalsa implements DeviceKey {
   }
 
   @override
-  Future<String> sign(String nonceBase64) async {
+  Future<String> sign(List<int> payload) async {
     if (!tiene) throw StateError('sin clave');
-    firmados.add(nonceBase64);
+    firmados.add(payload);
     return base64.encode(List<int>.filled(64, 3));
   }
 }
 
 /// Responde a cada petición según su ruta.
 class _Servidor {
-  _Servidor({this.altaFalla = false});
+  _Servidor({this.altaFalla = false, this.nonce});
 
   final bool altaFalla;
+  final String? nonce;
   final List<ApiRequest> peticiones = [];
 
   Future<ApiResponse> call(ApiRequest request) async {
@@ -53,7 +55,10 @@ class _Servidor {
     }
 
     if (request.path.endsWith('/auth/challenges')) {
-      return ApiResponse(200, '{"nonce":"${base64.encode([1, 2, 3, 4])}"}');
+      return ApiResponse(
+        200,
+        '{"nonce":"${nonce ?? base64.encode([1, 2, 3, 4])}"}',
+      );
     }
 
     if (request.path.endsWith('/auth/tokens')) {
@@ -71,8 +76,8 @@ void main() {
     MemoryStore almacen,
     _ClaveFalsa clave,
     _Servidor servidor
-  }) montar({bool altaFalla = false, bool conClave = false}) {
-    final servidor = _Servidor(altaFalla: altaFalla);
+  }) montar({bool altaFalla = false, bool conClave = false, String? nonce}) {
+    final servidor = _Servidor(altaFalla: altaFalla, nonce: nonce);
     final api = ApiClient(baseUrl: 'https://api.ejemplo', send: servidor.call);
     final almacen = MemoryStore();
     final clave = _ClaveFalsa(tiene: conClave);
@@ -112,12 +117,33 @@ void main() {
       expect(jsonEncode(devices.body), isNot(contains('un-codigo-largo')));
     });
 
-    test('se firma el reto que mando el servidor, no otra cosa', () async {
+    test('se firma el mensaje que el servidor verifica, no el reto', () async {
+      // El servidor no verifica la firma sobre el reto: la verifica sobre
+      // «contexto, dispositivo y reto» en texto. La primera versión firmaba el
+      // reto decodificado porque un comentario lo afirmaba, y esa firma no
+      // validaba nunca —con un error que decía «firma inválida», que es lo
+      // único que no era—.
       final m = montar();
 
       await m.alta.enroll(code: 'un-codigo-largo', deviceName: 'iPhone');
 
-      expect(m.clave.firmados.single, base64.encode([1, 2, 3, 4]));
+      final firmado = utf8.decode(m.clave.firmados.single);
+
+      expect(firmado, startsWith(DeviceAuth.context));
+      expect(firmado, contains('11111111-1111-1111-1111-111111111111'));
+      expect(firmado, endsWith(base64.encode([1, 2, 3, 4])));
+    });
+
+    test('el reto entra en el mensaje tal como llego, sin decodificar',
+        () async {
+      // Decodificarlo produciría un mensaje distinto del que se verifica. Y el
+      // servidor lo manda en base64url sin relleno, que el decodificador
+      // estándar rechaza con «Invalid length».
+      final m = montar(nonce: 'abc-_XYZ');
+
+      await m.alta.enroll(code: 'un-codigo-largo', deviceName: 'iPhone');
+
+      expect(utf8.decode(m.clave.firmados.single), endsWith('abc-_XYZ'));
     });
 
     test('un codigo malo no deja token guardado', () async {

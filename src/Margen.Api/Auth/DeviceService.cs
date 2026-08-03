@@ -250,14 +250,30 @@ public sealed class DeviceService(
                 Convert.FromBase64String(device.PublicKeySpki),
                 out _);
 
-            // El formato es el que produce `SecKeyCreateSignature` de iOS con
-            // `ecdsaSignatureMessageX962SHA256`: una secuencia DER, no el par
-            // de enteros en crudo.
+            // **Se aceptan los dos formatos de firma que existen para ECDSA.**
+            //
+            // `SecKeyCreateSignature` de iOS produce una secuencia DER, y era
+            // el único formato contemplado cuando la app iba a ser nativa.
+            // ADR-001 la convirtió en PWA, y **WebCrypto produce el otro**: el
+            // par de enteros concatenados en crudo, sin envoltura.
+            //
+            // Exigir solo DER hacía que ninguna firma del navegador validara
+            // jamás, con el mensaje «firma inválida» —que es exactamente lo que
+            // no era: la firma era correcta y estaba bien hecha, solo venía
+            // envuelta de otra manera—.
+            //
+            // Aceptar los dos no debilita nada: la verificación criptográfica
+            // es la misma y lo único que cambia es cómo se leen los dos enteros.
             return ecdsa.VerifyData(
-                payload,
-                signature,
-                HashAlgorithmName.SHA256,
-                DSASignatureFormat.Rfc3279DerSequence);
+                       payload,
+                       signature,
+                       HashAlgorithmName.SHA256,
+                       DSASignatureFormat.Rfc3279DerSequence)
+                   || ecdsa.VerifyData(
+                       payload,
+                       signature,
+                       HashAlgorithmName.SHA256,
+                       DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
         }
         catch (CryptographicException ex)
         {

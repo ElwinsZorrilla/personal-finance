@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../data/api_client.dart';
@@ -53,17 +55,36 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
     });
 
     try {
-      await widget.enrollment.enroll(code: code, deviceName: widget.deviceName);
+      // Con tope. Sin él, cualquier promesa que no se resuelva —IndexedDB
+      // bloqueado por otra pestaña, WebCrypto sin contexto seguro— deja el
+      // botón en «Conectando…» indefinidamente, que es la peor respuesta
+      // posible: no dice si esperar, reintentar o cambiar algo.
+      await widget.enrollment
+          .enroll(code: code, deviceName: widget.deviceName)
+          .timeout(const Duration(seconds: 30));
 
       if (mounted) widget.onDone();
     } on ApiFailure catch (failure) {
-      if (mounted) {
-        setState(() {
-          _working = false;
-          _error = _explain(failure);
-        });
-      }
+      _fallo(_explain(failure));
+    } on TimeoutException {
+      _fallo('El alta tardó demasiado. Vuelve a intentarlo.');
+    } catch (error) {
+      // **Se atrapa todo.** La generación de la clave ocurre antes de la
+      // primera petición y puede fallar por motivos que no son de red:
+      // almacenamiento del navegador desactivado, contexto no seguro, una
+      // pestaña vieja bloqueando la base. Capturar solo `ApiFailure` dejaba
+      // esos casos sin recoger y la pantalla colgada.
+      _fallo('$error');
     }
+  }
+
+  void _fallo(String mensaje) {
+    if (!mounted) return;
+
+    setState(() {
+      _working = false;
+      _error = mensaje;
+    });
   }
 
   /// Traduce el fallo a algo que se pueda leer de pie en la calle.

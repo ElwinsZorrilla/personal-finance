@@ -47,7 +47,7 @@ class WebDeviceKey implements DeviceKey {
   }
 
   @override
-  Future<String> sign(String nonceBase64) async {
+  Future<String> sign(List<int> payload) async {
     final JSObject? par = await _leerPar();
 
     if (par == null) {
@@ -56,11 +56,9 @@ class WebDeviceKey implements DeviceKey {
       );
     }
 
-    // Se firman **los bytes** del reto, no su texto en base64. El servidor
-    // verifica contra los bytes que generó; firmar la representación produce
-    // una firma que no valida, y el error que devuelve —«firma inválida»— no
-    // dice nada de que el problema esté en la codificación.
-    final Uint8List datos = base64.decode(nonceBase64);
+    // Los bytes llegan ya construidos: ver `DeviceAuth`. Esta capa no decide
+    // qué se firma.
+    final Uint8List datos = Uint8List.fromList(payload);
 
     final JSAny? firma = await web.window.crypto.subtle
         .sign(
