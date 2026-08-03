@@ -76,6 +76,40 @@ public sealed class CorsTests(PostgresFixture postgres)
     }
 
     [Fact]
+    public async Task la_cabecera_del_alta_esta_permitida()
+    {
+        // El código de alta va en cabecera y no en el cuerpo. Sin permitirla
+        // aquí, el preflight responde 204 **sin listarla**, el navegador
+        // bloquea la petición de verdad, y en la app se ve como «no se pudo
+        // conectar» — que es lo que dice un `fetch` bloqueado, y no tiene nada
+        // que ver con la conexión.
+        //
+        // Pasó: se enumeraron las cabeceras «para que añadir una nueva fuera
+        // una decisión y no un descuido», y la siguiente se añadió al cliente
+        // sin añadirla aquí. La regla estaba bien; le faltaba esta prueba.
+        await using var app = new TestApp(postgres.ConnectionString, null);
+        using HttpClient client = app.CreateClient();
+
+        using var peticion = new HttpRequestMessage(HttpMethod.Options, "/auth/devices");
+        peticion.Headers.Add("Origin", Permitido);
+        peticion.Headers.Add("Access-Control-Request-Method", "POST");
+        peticion.Headers.Add(
+            "Access-Control-Request-Headers",
+            $"content-type,{Margen.Api.Endpoints.AuthEndpoints.EnrollmentHeader.ToLowerInvariant()}");
+
+        HttpResponseMessage response = await client.SendAsync(peticion);
+
+        string permitidas = string.Join(
+            ",",
+            response.Headers.TryGetValues("Access-Control-Allow-Headers", out var h) ? h : []);
+
+        Assert.Contains(
+            Margen.Api.Endpoints.AuthEndpoints.EnrollmentHeader,
+            permitidas,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task la_cabecera_de_autorizacion_esta_permitida()
     {
         // Es donde viaja el token. Sin permitirla, el preflight autoriza el

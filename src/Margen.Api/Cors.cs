@@ -1,3 +1,5 @@
+using Margen.Api.Endpoints;
+
 namespace Margen.Api;
 
 /// <summary>
@@ -57,11 +59,26 @@ public static class Cors
                     .WithOrigins(origins)
                     .WithMethods("GET", "POST", "PUT", "DELETE")
 
-                    // `Authorization` porque el token viaja ahí, y `Content-Type`
-                    // porque sin él el navegador no deja mandar JSON. Enumerarlas
-                    // en vez de permitir cualquiera hace que añadir una cabecera
-                    // nueva sea una decisión y no un descuido.
-                    .WithHeaders("Authorization", "Content-Type")
+                    // `Authorization` porque el token viaja ahí, `Content-Type`
+                    // porque sin él el navegador no deja mandar JSON, y la del
+                    // alta porque el código de dispositivo va en cabecera y no
+                    // en el cuerpo.
+                    //
+                    // Enumerarlas en vez de permitir cualquiera se justificó
+                    // diciendo que «añadir una cabecera nueva debe ser una
+                    // decisión y no un descuido». Y entonces se añadió
+                    // `X-Margen-Enrollment` al cliente sin añadirla aquí: el
+                    // preflight seguía respondiendo 204, sin esa cabecera en la
+                    // lista, y el navegador bloqueaba la petición de verdad. En
+                    // la app se veía como «no se pudo conectar», que es lo que
+                    // dice un `fetch` bloqueado.
+                    //
+                    // La regla es buena; lo que faltaba era una prueba que la
+                    // hiciera cumplir. Está en `CorsTests`.
+                    .WithHeaders(
+                        "Authorization",
+                        "Content-Type",
+                        AuthEndpoints.EnrollmentHeader)
 
                     // La respuesta del preflight se guarda diez minutos. Sin
                     // esto, cada petición del panel son dos viajes.
