@@ -31,6 +31,7 @@ builder.Services.AddOptions<MailboxOptions>()
 builder.Services.AddSingleton(new ParserRegistry([
     new PopularParser(),
     new QikParser(),
+    new BanreservasParser(),
     new SampleBankParser(),
 ]));
 

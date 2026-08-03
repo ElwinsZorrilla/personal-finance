@@ -6,7 +6,7 @@ Estado: **cerrada**
 Paso: 7 de 7 (NEXT)
 Vuelta: 1 de 3
 Compuerta 1: verde en las dos
-Revisión: CR-011 aprobada · CR-012 (segundo banco)
+Revisión: CR-011 aprobada · CR-012 y CR-013 (segundo y tercer banco)
 Veredicto: **APROBADA**
 Bloqueo: -
 
@@ -29,15 +29,26 @@ por remitente, así que el banco nuevo no toca a los que ya funcionan.
 | Banco | Parser | Muestras |
 |---|---|---|
 | Banco Popular | Escrito y aprobado (CR-008) | 16, faltan 3 tipos |
-| Qik Banco Digital | Escrito y aprobado (CR-012) | 7, solo avisos de tarjeta |
+| Qik Banco Digital | Escrito y aprobado (CR-012) | 6, solo avisos de tarjeta |
+| Banco de Reservas | Escrito y aprobado (CR-013) | 6, consumos y retiros |
 | Los demás | **Pendiente** | **Pendientes de capturar** |
 
-Contra las 23 muestras reales: **19 leídas, 4 a revisión, 0 ajenas**. Las cuatro
-son compras que el banco declinó y que no crean movimiento.
+Contra las 28 muestras reales: **25 leídas, 3 a revisión, 0 ajenas**. Las tres
+son compras que Qik declinó y que no crean movimiento.
 
-**El asunto de Qik no dice si la transacción pasó.** Sus tres asuntos aparecen
-en aprobadas y en declinadas, así que lo decide el cuerpo. En el Popular es al
-revés: allí el asunto sí decide el tipo.
+**Cada banco rompe una suposición distinta**, y por eso ninguna se ve hasta que
+llega el siguiente:
+
+| Suposición | Quién la rompe |
+|---|---|
+| «La fecha tiene un formato» | El Popular la escribe de tres maneras |
+| «El asunto dice el tipo» | Qik: sus tres asuntos salen en aprobadas y declinadas |
+| «El asunto dice algo» | Banreservas: los seis correos llevan el mismo |
+| «El reloj es de doce horas» | Banreservas escribe `19:43 PM` |
+| «El día va antes que el mes» | Qik escribe `06-20-2026`; Banreservas, `08/07/2026` |
+
+Son cinco formas de escribir una fecha y **dos bancos del mismo país con el
+orden opuesto**. Ningún parser adivina el formato.
 
 ## La conciliación
 
@@ -95,8 +106,9 @@ los compromisos no caben en el sueldo.
 | 10 · Conciliación | Cerrada | CR-011 | 56 puras + 15 de integración |
 
 | — · Segundo banco: Qik | Cerrado | CR-012 | 18 en `Ingest` |
+| — · Tercer banco: Banreservas | Cerrado | CR-013 | 19 en `Ingest` |
 
-**795 pruebas**: 704 en .NET, 91 en Flutter. Las dos compuertas 1 en verde.
+**818 pruebas**: 727 en .NET, 91 en Flutter. Las dos compuertas 1 en verde.
 Cobertura de `Margen.Classify`: 99,8 % de líneas, 98,3 % de ramas.
 
 ## Lo que necesito del humano
@@ -110,10 +122,11 @@ Cobertura de `Margen.Classify`: 99,8 % de líneas, 98,3 % de ramas.
 4. **El merge a `main`.** Diez ramas publicadas, ninguna fusionada.
 5. **Capturar el resto de bancos, si hay más.** Pon sus remitentes en
    `IMAP_ALLOWED_SENDERS` —separados por comas— y corre `--capturar-muestras`.
-6. **Guardar los avisos que faltan**: del Popular, compra rechazada, devolución
-   y pago de tarjeta; de Qik, depósito, transferencia y pago. Ninguno apareció
-   en el buzón, y el parser no se los inventa: lo que no reconoce va a
-   Revisión.
+6. **Guardar los avisos que faltan** de los tres bancos. Ninguno apareció en el
+   buzón y ningún parser se los inventa: lo que no reconoce va a Revisión.
+   Del Popular, compra rechazada, devolución y pago de tarjeta; de Qik,
+   depósito, transferencia y pago; de Banreservas, **una transacción declinada**
+   —no se sabe qué palabra usa— más depósito y transferencia.
 
 ## Lo que sigue
 

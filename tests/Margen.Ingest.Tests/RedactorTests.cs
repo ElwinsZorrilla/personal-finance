@@ -111,6 +111,58 @@ public sealed class RedactorTests
     }
 
     [Fact]
+    public void un_monto_con_codigo_de_moneda_tampoco_sobrevive()
+    {
+        // Banreservas escribe `DOP 9,876.54` en vez de `RD$ 9,876.54`. El
+        // patrón solo conocía los símbolos, y el importe real de una compra
+        // quedó escrito en el disco.
+        string limpio = Con().Redact("""
+            Monto:
+            DOP 9,876.54
+            """);
+
+        Assert.DoesNotContain("9,876.54", limpio, StringComparison.Ordinal);
+        Assert.Contains("DOP 1,111.11", limpio, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void el_codigo_de_moneda_se_conserva_porque_es_formato()
+    {
+        // El parser tiene que leer «DOP» para saber que son pesos. Borrarlo
+        // dejaría la muestra sin la moneda.
+        Assert.Contains("USD", Con().Redact("USD 250.00"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void el_numero_de_aprobacion_tampoco_sobrevive()
+    {
+        // Otra etiqueta que el patrón de referencia no conocía, y el número
+        // real de una transacción quedó en el disco.
+        string limpio = Con().Redact("""
+            Número de aprobación:
+            081234
+            """);
+
+        Assert.DoesNotContain("081234", limpio, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void una_referencia_partida_entre_celdas_tampoco_sobrevive()
+    {
+        // Banreservas escribe `<td>Número de aprobación:</td><td>081234</td>`.
+        // Para una expresión regular sobre el HTML crudo eso no es «Número de
+        // aprobación: 081234», y el número real de la transacción sobrevivía.
+        //
+        // Es el mismo caso que «terminada en» partido entre celdas, y por eso
+        // hace falta la pasada sobre el texto sin etiquetas.
+        string limpio = Con().Redact(
+            "<tr><td>Número de aprobación:</td><td>081234</td></tr>");
+
+        Assert.DoesNotContain("081234", limpio, StringComparison.Ordinal);
+        Assert.Contains("999999", limpio, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void la_autorizacion_tambien_se_redacta()
     {
         Assert.DoesNotContain(

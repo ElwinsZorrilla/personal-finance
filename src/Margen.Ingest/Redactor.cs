@@ -75,6 +75,19 @@ public sealed partial class Redactor(RedactionSettings settings)
             result = result.Replace(secreto, "1234", StringComparison.Ordinal);
         }
 
+        // Y lo mismo con las referencias. Banreservas escribe la etiqueta en una
+        // celda y el número en otra —`<td>Número de aprobación:</td><td>081234`—,
+        // así que el patrón por etiqueta nunca los ve juntos y el número real de
+        // la transacción sobrevivía.
+        //
+        // Es el mismo caso que «terminada en» partido entre celdas, y se resuelve
+        // igual: se busca donde la frase está entera y se borra el literal del
+        // original, que tiene que seguir siendo HTML.
+        foreach (string referencia in FindReferencesInPlainText(result))
+        {
+            result = result.Replace(referencia, MaskValue(referencia), StringComparison.Ordinal);
+        }
+
         // El nombre que sigue a una etiqueta de persona, sea de quien sea.
         //
         // Va primero y es la regla que más cubre. Los términos que da el
@@ -152,6 +165,44 @@ public sealed partial class Redactor(RedactionSettings settings)
     }
 
     /// <summary>
+    /// Las referencias que solo se ven con el HTML quitado.
+    /// </summary>
+    /// <remarks>
+    /// Se descartan las que ya están sustituidas: sin eso, cada pasada volvería
+    /// a enmascarar lo que puso la anterior, y un redactor que se come su propia
+    /// salida produce basura distinta cada vez que se le toca.
+    /// </remarks>
+    private static IEnumerable<string> FindReferencesInPlainText(string html)
+    {
+        string plain = EmailText.Normalize(html);
+
+        foreach (Match m in ReferencePattern().Matches(plain))
+        {
+            string value = m.Groups["valor"].Value;
+            if (value != MaskValue(value)) yield return value;
+        }
+    }
+
+    /// <summary>
+    /// Dígitos a nueves y letras a aes, conservando la forma.
+    /// </summary>
+    private static string MaskValue(string value)
+    {
+        var builder = new StringBuilder(value.Length);
+
+        foreach (char c in value)
+        {
+            // Letra sustituta 'A' y no 'X'. `xxxx1234` es una forma legítima de
+            // enmascarar una tarjeta, así que el patrón de máscara leía las X de
+            // esta misma sustitución como si fueran asteriscos y volvía a
+            // reemplazar los dígitos que acababan de ponerse.
+            builder.Append(char.IsAsciiDigit(c) ? '9' : char.IsAsciiLetter(c) ? 'A' : c);
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
     /// Cambia las cifras conservando los separadores en su sitio.
     /// </summary>
     /// <remarks>
@@ -177,26 +228,8 @@ public sealed partial class Redactor(RedactionSettings settings)
     /// Cambia la referencia conservando su longitud y sus clases de carácter:
     /// las letras siguen siendo letras y los dígitos, dígitos.
     /// </summary>
-    private static string ReplaceReference(Match match)
-    {
-        string prefix = match.Groups["etiqueta"].Value;
-        string value = match.Groups["valor"].Value;
-
-        var builder = new StringBuilder(value.Length);
-
-        foreach (char c in value)
-        {
-            // Letra sustituta 'A' y no 'X'. `xxxx1234` es una forma legítima
-            // de enmascarar una tarjeta, así que el patrón de máscara leía las
-            // X de esta misma sustitución como si fueran asteriscos y volvía a
-            // reemplazar los dígitos que acababan de ponerse. Un redactor que
-            // se come su propia salida es un redactor que produce basura
-            // distinta cada vez que se le añade una regla.
-            builder.Append(char.IsAsciiDigit(c) ? '9' : char.IsAsciiLetter(c) ? 'A' : c);
-        }
-
-        return prefix + builder.ToString();
-    }
+    private static string ReplaceReference(Match match) =>
+        match.Groups["etiqueta"].Value + MaskValue(match.Groups["valor"].Value);
 
     [GeneratedRegex(
         @"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
@@ -244,15 +277,21 @@ public sealed partial class Redactor(RedactionSettings settings)
     /// Redactar de más parece la opción segura y no lo es: deja una muestra que
     /// miente sobre el formato, y el parser que se escriba contra ella fallará
     /// con el correo real.
+    ///
+    /// Los códigos de moneda —`DOP`, `USD`, `EUR`— están aquí desde el tercer
+    /// banco. Banreservas escribe `DOP 9,876.54` en vez de `RD$ 9,876.54`, y
+    /// el patrón solo conocía los símbolos: el importe real de una compra quedó
+    /// escrito en el disco. La etiqueta `Monto:` tampoco lo salvaba, porque ese
+    /// banco la pone en una línea y la cifra en la siguiente.
     /// </remarks>
     [GeneratedRegex(
-        @"(?<pre>(?:RD\$?|US\$?|\$|(?:Monto|Valor|Importe|Total)\s*:?)\s*)(?<num>\d[\d.,]*)",
+        @"(?<pre>(?:RD\$?|US\$?|\$|DOP|USD|EUR|(?:Monto|Valor|Importe|Total)\s*:?)\s*)(?<num>\d[\d.,]*)",
         RegexOptions.IgnoreCase,
         matchTimeoutMilliseconds: 2000)]
     private static partial Regex AmountPattern();
 
     [GeneratedRegex(
-        @"(?<etiqueta>(?:Referencia|Autorizaci[oó]n|Auth|No\.?\s*Transacci[oó]n|Confirmaci[oó]n)\s*:?\s*)(?<valor>[A-Za-z0-9\-]{4,})",
+        @"(?<etiqueta>(?:Referencia|Autorizaci[oó]n|N[uú]mero\s+de\s+aprobaci[oó]n|Aprobaci[oó]n|Auth|No\.?\s*Transacci[oó]n|Confirmaci[oó]n)\s*:?\s*)(?<valor>[A-Za-z0-9\-]{4,})",
         RegexOptions.IgnoreCase,
         matchTimeoutMilliseconds: 2000)]
     private static partial Regex ReferencePattern();

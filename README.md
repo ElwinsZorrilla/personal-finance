@@ -110,7 +110,7 @@ Y se lee `git diff --cached` buscando secretos.
 | 4 | Endpoints y contrato | Cerrada (CR-004) |
 | 5 | Capa de datos en Flutter | Cerrada (CR-006) |
 | 6 | Ingesta de correo, sin parser de banco | Cerrada (CR-007) |
-| 7 | Parser del banco | Cerrada (CR-008). Popular y Qik (CR-012) |
+| 7 | Parser del banco | Cerrada (CR-008). Popular, Qik (CR-012) y Banreservas (CR-013) |
 | 8 | Clasificación y anomalías | Cerrada (CR-009) |
 | 9 | Efectivo desde el iPhone | Cerrada (CR-010) |
 | 10 | Conciliación | Cerrada (CR-011) |

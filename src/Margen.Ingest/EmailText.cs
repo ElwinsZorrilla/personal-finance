@@ -125,7 +125,12 @@ public static partial class EmailText
         {
             for (int i = 0; i < lines.Length - 1; i++)
             {
-                if (!string.Equals(lines[i].Trim(), label, StringComparison.OrdinalIgnoreCase))
+                // Los dos puntos finales sobran: Qik escribe «Estatus» y
+                // Banreservas «Estado:», y son la misma etiqueta. Lo que sigue
+                // exigiéndose es que ocupe la línea entera.
+                string line = lines[i].Trim().TrimEnd(':').Trim();
+
+                if (!string.Equals(line, label, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }

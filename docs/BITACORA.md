@@ -168,4 +168,26 @@ Una línea por iteración cerrada.
             añadir el banco costó un parser y CERO cambios en ingesta,
             clasificación, conciliación y presupuesto
             deuda abierta: m32 (cuando lleguen los avisos que faltan)
+
+2026-08-03 · TERCER BANCO · Banco de Reservas
+            CR-013 aprobada tras 1 vuelta · 1 Blocker corregido
+            las dos compuertas 1 en verde: 818 pruebas (727 .NET, 91 Flutter)
+            28 muestras de tres bancos: 25 leídas, 3 a revisión, 0 ajenas
+            B1: dos datos reales en el disco · DOP 9,876.54 porque el patrón
+            solo conocía los símbolos de moneda, y 081234 porque la etiqueta y
+            el valor están en celdas distintas · séptima y octava fuga, las dos
+            por un formato que el redactor no había visto
+            el asunto de Banreservas NO DICE NADA: los seis correos llevan
+            «Notificaciones Banreservas» · tercer banco, tercer reparto
+            reloj de 24 horas con meridiano decorativo: 19:43 PM, 21:30 PM ·
+            comprobado contra la hora de recepción en las seis muestras
+            día delante del mes, AL REVÉS QUE QIK · quinta forma de fecha y dos
+            bancos del mismo país con el orden opuesto
+            se exige que el estado diga APROBADO: no hay ninguna muestra
+            declinada de este banco y no se sabe qué palabra usa
+            manda el número de aprobación, que entra en la huella: es lo que
+            distingue dos cargos idénticos del mismo día
+            tres bancos y CERO cambios en clasificación, conciliación y
+            presupuesto · lo único compartido que se tocó fue el redactor
+            deuda abierta: m33 (avisos que faltan de Banreservas)
 ```
