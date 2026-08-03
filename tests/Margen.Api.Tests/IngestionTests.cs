@@ -373,3 +373,53 @@ public sealed class MailboxOptionsTests
         Assert.False(options.Allows("alertas@nobanco.do"));
     }
 }
+
+/// <summary>
+/// Cómo se reparten las muestras por tipo de aviso.
+/// </summary>
+/// <remarks>
+/// Existe porque la primera captura real trajo treinta y siete notificaciones
+/// de consumo y tres de retiro: el tope era global y los correos más recientes
+/// eran todos del mismo tipo. Las cuatro formas que faltaban estaban en el
+/// buzón, más atrás.
+/// </remarks>
+public sealed class SampleTypeTests
+{
+    [Theory]
+    // Los asuntos reales del Banco Popular Dominicano.
+    [InlineData("Notificación de Consumo", "compra-aprobada")]
+    [InlineData("Notificación de Retiro", "retiro")]
+    // Las formas de otros bancos dominicanos.
+    [InlineData("Transacción rechazada", "compra-rechazada")]
+    [InlineData("Compra declinada", "compra-rechazada")]
+    [InlineData("Devolución procesada", "devolucion")]
+    [InlineData("Reverso de transacción", "devolucion")]
+    [InlineData("Retiro en cajero automático", "retiro")]
+    [InlineData("Pago de tarjeta recibido", "pago-tarjeta")]
+    [InlineData("Transferencia enviada", "transferencia")]
+    [InlineData("Notificación de compra", "compra-aprobada")]
+    public void el_asunto_decide_el_tipo(string asunto, string esperado)
+    {
+        Assert.Equal(esperado, Margen.Worker.Ingestion.SampleCapture.TypeOf(asunto));
+    }
+
+    [Fact]
+    public void un_asunto_desconocido_sigue_siendo_una_muestra_util()
+    {
+        // Dice que hay una forma de aviso que nadie previó, que es justo lo que
+        // hay que saber antes de escribir el parser.
+        Assert.Equal("sin-clasificar", Margen.Worker.Ingestion.SampleCapture.TypeOf("Su estado de cuenta"));
+        Assert.Equal("sin-clasificar", Margen.Worker.Ingestion.SampleCapture.TypeOf(null));
+    }
+
+    [Fact]
+    public void lo_rechazado_gana_sobre_lo_de_compra()
+    {
+        // «Compra rechazada» lleva las dos palabras. El orden de las ramas es
+        // lo que decide, y tiene que ser el conservador: una compra rechazada
+        // no gastó dinero.
+        Assert.Equal(
+            "compra-rechazada",
+            Margen.Worker.Ingestion.SampleCapture.TypeOf("Notificación de Compra Rechazada"));
+    }
+}

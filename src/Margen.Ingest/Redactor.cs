@@ -26,7 +26,12 @@ public sealed partial class Redactor(RedactionSettings settings)
     {
         ArgumentNullException.ThrowIfNull(body);
 
-        string result = body;
+        // Los correos del banco vienen sembrados de guiones suaves (U+00AD),
+        // que no se ven pero parten una palabra por la mitad para cualquier
+        // expresión regular. Se quitan antes de mirar nada: sin esto, una
+        // dirección escrita `voz­delcliente­@bpd­.com` no la reconoce el patrón
+        // de correo y sobrevive a la redacción.
+        string result = body.Replace("­", string.Empty, StringComparison.Ordinal);
 
         // Los términos que da el usuario van primero: su nombre puede aparecer
         // dentro de una dirección de correo o de un comercio, y sustituirlo
@@ -45,7 +50,8 @@ public sealed partial class Redactor(RedactionSettings settings)
 
         result = EmailPattern().Replace(result, "finanzas@ejemplo.do");
         result = ReferencePattern().Replace(result, ReplaceReference);
-        result = CardPattern().Replace(result, m => m.Groups["mask"].Value + "1234");
+        result = MaskedCardPattern().Replace(result, m => m.Groups["mask"].Value + "1234");
+        result = SpelledCardPattern().Replace(result, m => m.Groups["etiqueta"].Value + "1234");
         result = AmountPattern().Replace(result, ReplaceAmount);
 
         // La última red, después de todo lo demás: cualquier cadena de ocho
@@ -104,12 +110,31 @@ public sealed partial class Redactor(RedactionSettings settings)
         matchTimeoutMilliseconds: 2000)]
     private static partial Regex EmailPattern();
 
-    /// <summary>Los últimos cuatro dígitos, con la máscara que use el banco.</summary>
+    /// <summary>Los últimos cuatro dígitos con máscara: `****1234`.</summary>
     [GeneratedRegex(
         @"(?<mask>[*x•]{2,}\s?)\d{4}",
         RegexOptions.IgnoreCase,
         matchTimeoutMilliseconds: 2000)]
-    private static partial Regex CardPattern();
+    private static partial Regex MaskedCardPattern();
+
+    /// <summary>
+    /// Los últimos cuatro dígitos **escritos con palabras**: «terminada en
+    /// 2074».
+    /// </summary>
+    /// <remarks>
+    /// Esta forma se descubrió leyendo las primeras muestras reales, y la
+    /// primera versión del redactor no la reconocía: los cuarenta archivos
+    /// salieron con los cuatro dígitos verdaderos de la tarjeta.
+    ///
+    /// La lección no es que faltara un patrón. Es que **un redactor solo cubre
+    /// los formatos que ha visto**, y por eso las muestras se leen antes de
+    /// versionarlas en vez de confiar en que la herramienta las dejó limpias.
+    /// </remarks>
+    [GeneratedRegex(
+        @"(?<etiqueta>(?:terminad[ao]s?\s+en|finaliza(?:da|do)?\s+en|final(?:izada)?\s*:?\s*|n[uú]mero\s+)\s*)\d{4}\b",
+        RegexOptions.IgnoreCase,
+        matchTimeoutMilliseconds: 2000)]
+    private static partial Regex SpelledCardPattern();
 
     /// <summary>
     /// Una cifra **anclada a una marca de moneda o a la etiqueta del monto**.

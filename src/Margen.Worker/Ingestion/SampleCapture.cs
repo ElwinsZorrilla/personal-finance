@@ -36,10 +36,19 @@ namespace Margen.Worker.Ingestion;
 public static class SampleCapture
 {
     /// <summary>
-    /// Cuántos correos como mucho. Con más, la carpeta se llena de variantes
-    /// del mismo formato y escribir el parser se vuelve arqueología.
+    /// Cuántas muestras **por tipo de aviso**.
     /// </summary>
-    private const int MaxSamples = 40;
+    /// <remarks>
+    /// Por tipo y no en total, y ese es el cambio que importa. Con un tope
+    /// global sobre los correos más recientes, la primera captura real trajo
+    /// treinta y siete notificaciones de consumo y tres de retiro: faltaban las
+    /// cuatro formas que el parser también tiene que saber leer, y estaban ahí,
+    /// más atrás en el buzón.
+    ///
+    /// Seis por tipo alcanza para ver si el banco usa una plantilla o varias, y
+    /// no llena la carpeta de copias de lo mismo.
+    /// </remarks>
+    private const int PerType = 6;
 
     public static async Task<int> RunAsync(IServiceProvider services, string[] args)
     {
@@ -132,6 +141,8 @@ public static class SampleCapture
         var escritos = new List<string>();
         int vistos = 0;
 
+        var porTipo = new Dictionary<string, int>(StringComparer.Ordinal);
+
         foreach (string sender in options.Senders)
         {
             IList<UniqueId> encontrados = await client.Inbox
@@ -140,13 +151,26 @@ public static class SampleCapture
 
             Console.WriteLine($"  {sender}: {encontrados.Count} correo(s).");
 
+            if (encontrados.Count == 0) continue;
+
+            // Se piden solo los sobres primero: traen el asunto, que es lo que
+            // decide el tipo, y pesan una fracción del mensaje entero. Bajar
+            // doscientos correos completos para quedarse con treinta es
+            // esperar de más por lo que no se va a usar.
+            IList<IMessageSummary> sobres = await client.Inbox
+                .FetchAsync(encontrados, MessageSummaryItems.Envelope | MessageSummaryItems.UniqueId)
+                .ConfigureAwait(false);
+
             // Del más reciente hacia atrás: las plantillas cambian y la que
             // importa es la de ahora.
-            foreach (UniqueId uid in encontrados.Reverse())
+            foreach (IMessageSummary sobre in sobres.Reverse())
             {
-                if (escritos.Count >= MaxSamples) break;
+                string tipo = TypeOf(sobre.Envelope?.Subject);
 
-                MimeMessage message = await client.Inbox.GetMessageAsync(uid)
+                porTipo.TryGetValue(tipo, out int cuantos);
+                if (cuantos >= PerType) continue;
+
+                MimeMessage message = await client.Inbox.GetMessageAsync(sobre.UniqueId)
                     .ConfigureAwait(false);
 
                 vistos++;
@@ -157,7 +181,7 @@ public static class SampleCapture
                 string limpio = redactor.Redact(cuerpo);
                 string asunto = redactor.Redact(message.Subject ?? string.Empty);
 
-                string nombre = FileNameFor(message, escritos);
+                string nombre = FileNameFor(tipo, escritos);
                 string ruta = Path.Combine(destino, nombre);
 
                 await File.WriteAllTextAsync(
@@ -166,7 +190,15 @@ public static class SampleCapture
                     new UTF8Encoding(false)).ConfigureAwait(false);
 
                 escritos.Add(nombre);
+                porTipo[tipo] = cuantos + 1;
             }
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("Por tipo:");
+        foreach ((string tipo, int cuantos) in porTipo.OrderBy(p => p.Key, StringComparer.Ordinal))
+        {
+            Console.WriteLine($"  {tipo,-20} {cuantos}");
         }
 
         await client.DisconnectAsync(true).ConfigureAwait(false);
@@ -228,28 +260,45 @@ public static class SampleCapture
     }
 
     /// <summary>
-    /// Un nombre por asunto, para que los seis tipos queden separados sin que
-    /// nadie los ordene a mano.
+    /// El tipo de aviso, deducido del asunto.
     /// </summary>
-    private static string FileNameFor(MimeMessage message, List<string> yaEscritos)
+    /// <remarks>
+    /// Los términos salen de los asuntos reales del Banco Popular
+    /// —«Notificación de Consumo», «Notificación de Retiro»— más las formas que
+    /// usan otros bancos dominicanos. Un asunto que no encaje va a
+    /// `sin-clasificar`, que sigue siendo una muestra útil: dice que hay una
+    /// forma de aviso que nadie previó.
+    /// </remarks>
+    public static string TypeOf(string? subject)
     {
-        string subject = (message.Subject ?? "sin-asunto").ToLowerInvariant();
+        string s = (subject ?? string.Empty).ToLowerInvariant();
 
-        string tipo = subject switch
+        return s switch
         {
-            var s when s.Contains("rechaz", StringComparison.Ordinal)
-                || s.Contains("declin", StringComparison.Ordinal) => "compra-rechazada",
-            var s when s.Contains("devoluc", StringComparison.Ordinal)
-                || s.Contains("revers", StringComparison.Ordinal) => "devolucion",
-            var s when s.Contains("retiro", StringComparison.Ordinal)
+            _ when s.Contains("rechaz", StringComparison.Ordinal)
+                || s.Contains("declin", StringComparison.Ordinal)
+                || s.Contains("no aprobad", StringComparison.Ordinal) => "compra-rechazada",
+
+            _ when s.Contains("devoluc", StringComparison.Ordinal)
+                || s.Contains("revers", StringComparison.Ordinal)
+                || s.Contains("reembols", StringComparison.Ordinal) => "devolucion",
+
+            _ when s.Contains("retiro", StringComparison.Ordinal)
                 || s.Contains("cajero", StringComparison.Ordinal) => "retiro",
-            var s when s.Contains("pago", StringComparison.Ordinal) => "pago-tarjeta",
-            var s when s.Contains("transferenc", StringComparison.Ordinal) => "transferencia",
-            var s when s.Contains("compra", StringComparison.Ordinal)
-                || s.Contains("consumo", StringComparison.Ordinal) => "compra-aprobada",
+
+            _ when s.Contains("transferenc", StringComparison.Ordinal) => "transferencia",
+
+            _ when s.Contains("pago", StringComparison.Ordinal) => "pago-tarjeta",
+
+            _ when s.Contains("consumo", StringComparison.Ordinal)
+                || s.Contains("compra", StringComparison.Ordinal) => "compra-aprobada",
+
             _ => "sin-clasificar",
         };
+    }
 
+    private static string FileNameFor(string tipo, List<string> yaEscritos)
+    {
         int n = 1;
         string nombre = $"{tipo}.txt";
 
