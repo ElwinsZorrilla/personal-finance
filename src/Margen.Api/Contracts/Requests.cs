@@ -9,8 +9,11 @@ namespace Margen.Api.Contracts;
 /// camino monetario, porque un <c>double</c> de JavaScript no representa 0.10
 /// exactamente y el Atajo de iOS serializa desde JavaScript.
 ///
-/// La interpretación de «Gasté 450 pesos en almuerzo» es la Fase 9 y entrará
-/// por un campo aparte, no reemplazando a este.
+/// La frase de la Fase 9 entra por **otra ruta**, no por un campo opcional de
+/// esta. Un cuerpo con dos formas válidas —o monto y comercio, o frase— obliga
+/// a quien lo lee a averiguar cuál de las dos le mandaron, y la primera vez que
+/// llegan las dos a la vez hay que elegir una en silencio. Es la misma trampa
+/// que llevó el PUT de movimientos a dejar de ser PATCH.
 /// </remarks>
 public sealed record CreateCashRequest(
     long AmountCents,
@@ -18,6 +21,17 @@ public sealed record CreateCashRequest(
     Guid? CategoryId,
     DateOnly? OccurredOn,
     string? Notes);
+
+/// <summary>
+/// Un gasto de efectivo escrito o dictado: «Gasté 450 pesos en almuerzo».
+/// </summary>
+/// <remarks>
+/// Es lo que manda el Atajo de iOS. El monto sale de la frase con una expresión
+/// regular y **nunca con un modelo**: ver `CashPhrase`. Lo que sí puede opinar
+/// un modelo es la categoría, a través de la cascada, y allí tampoco decide
+/// solo.
+/// </remarks>
+public sealed record CreateCashPhraseRequest(string Text);
 
 /// <summary>
 /// Estado clasificable de un movimiento. Es un reemplazo completo, no un

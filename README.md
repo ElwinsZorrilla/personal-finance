@@ -32,6 +32,7 @@ src/          .NET. Servidor.
   Margen.Worker/          Lector del buzón y captura de muestras.
 tests/        Pruebas del servidor. Las de integración usan Postgres real.
 docs/         Sistema visual, decisiones, revisiones, deuda, briefs, planes.
+  atajo.md      Cómo montar el Atajo de iOS. Sin secretos dentro.
   api/          Contrato OpenAPI versionado. Se regenera, no se edita.
 infra/        Stack de Docker para el servidor.
 ```
@@ -111,7 +112,7 @@ Y se lee `git diff --cached` buscando secretos.
 | 6 | Ingesta de correo, sin parser de banco | Cerrada (CR-007) |
 | 7 | Parser del Banco Popular | Cerrada (CR-008) |
 | 8 | Clasificación y anomalías | Cerrada (CR-009) |
-| 9 | Efectivo desde el iPhone | |
+| 9 | Efectivo desde el iPhone | Cerrada (CR-010) |
 | 10 | Conciliación | |
 | 11 | Empaquetado iOS | Depende de ADR-001 |
 | 12 | Endurecimiento y despliegue | |

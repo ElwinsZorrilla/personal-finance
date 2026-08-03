@@ -9,6 +9,12 @@
   <ItemGroup>
     <ProjectReference Include="../Margen.Infrastructure/Margen.Infrastructure.csproj" />
     <ProjectReference Include="../Margen.Budget/Margen.Budget.csproj" />
+
+    <!-- Por `CashPhrase`, que interpreta la frase del Atajo. Es lógica pura de
+         entrada de datos y vive con los demás intérpretes: el del correo del
+         banco y el de la frase resuelven el mismo problema —texto de fuera a un
+         movimiento— y el día que uno aprenda algo, el otro está al lado. -->
+    <ProjectReference Include="../Margen.Ingest/Margen.Ingest.csproj" />
   </ItemGroup>
 
   <ItemGroup>

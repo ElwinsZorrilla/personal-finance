@@ -4,6 +4,8 @@ using Margen.Api.Contracts;
 using Margen.Domain;
 using Margen.Domain.Entities;
 using Margen.Infrastructure;
+using Margen.Infrastructure.Classification;
+using Margen.Ingest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,15 +15,20 @@ namespace Margen.Api.Endpoints;
 /// Registro rápido de efectivo.
 /// </summary>
 /// <remarks>
-/// Es la ruta que alcanza el token del Atajo de iOS, y la única. Dejó de
-/// devolver 501 en esta fase: paga la deuda m11 de CR-002.
+/// Dos puertas al mismo sitio, y las dos las alcanza el token del Atajo:
 ///
-/// Lo que sigue siendo de la Fase 9 es **interpretar** «Gasté 450 pesos en
-/// almuerzo». Aquí el monto llega en centavos enteros y la Fase 9 añadirá un
-/// campo de texto que se traduzca a estos mismos campos antes de guardar. La
-/// diferencia importa: un modelo de lenguaje podrá proponer el comercio y la
-/// categoría, pero el monto que se guarde tendrá que haber pasado por un
-/// entero, no por su interpretación.
+/// - `POST /transactions/cash` con el monto en centavos enteros. Es la que usa
+///   la app, que ya tiene un teclado numérico.
+/// - `POST /transactions/cash/phrase` con «Gasté 450 pesos en almuerzo». Es la
+///   que usa el Atajo de iOS.
+///
+/// **El monto de la frase lo saca una expresión regular, no un modelo.** Un
+/// modelo que un día lea «450» donde decía «45.0» mete un error de un orden de
+/// magnitud en una cifra que después se resta del líquido, y no hay ninguna
+/// señal de que ha pasado. Lo que sí puede opinar un modelo es la categoría, y
+/// eso va por la cascada de la Fase 8, donde tampoco decide solo.
+///
+/// Dos rutas y no un cuerpo con dos formas: ver `CreateCashRequest`.
 /// </remarks>
 public static class CashEndpoints
 {
@@ -44,13 +51,63 @@ public static class CashEndpoints
             .WithTags("Efectivo")
             .Produces<TransactionView>(StatusCodes.Status201Created);
 
+        app.MapPost("/transactions/cash/phrase", CreateFromPhraseAsync)
+            .RequireAuthorization(ScopePolicies.CashCreate)
+            .RequireRateLimiting(RateLimits.QuickEntry)
+            .WithName("CreateCashTransactionFromPhrase")
+            .WithTags("Efectivo")
+            .Produces<TransactionView>(StatusCodes.Status201Created);
+
         return app;
+    }
+
+    /// <summary>
+    /// «Gasté 450 pesos en almuerzo».
+    /// </summary>
+    /// <remarks>
+    /// Interpreta la frase y delega en el mismo camino que la otra puerta. Lo
+    /// que no se entiende **no crea nada** y responde diciendo qué falta, con el
+    /// texto que el Atajo enseña en pantalla: la persona está de pie en la calle
+    /// y necesita saber si se registró o no.
+    /// </remarks>
+    private static async Task<IResult> CreateFromPhraseAsync(
+        [FromBody] CreateCashPhraseRequest request,
+        [FromServices] MargenDbContext db,
+        [FromServices] TimeProvider clock,
+        [FromServices] TransactionClassifier classifier,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        PhraseResult parsed = CashPhrase.Parse(request.Text);
+
+        if (!parsed.Ok)
+        {
+            return ApiResults.BadRequest(parsed.Message!);
+        }
+
+        CashEntry entry = parsed.Entry!.Value;
+        DateOnly day = LocalTime.LocalDateOf(clock.GetUtcNow().UtcDateTime)
+            .AddDays(entry.DayOffset);
+
+        return await CreateAsync(
+            new CreateCashRequest(
+                entry.Amount.Cents,
+                entry.Description,
+                CategoryId: null,
+                OccurredOn: day,
+                Notes: null),
+            db,
+            clock,
+            classifier,
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<IResult> CreateAsync(
         [FromBody] CreateCashRequest request,
         [FromServices] MargenDbContext db,
         [FromServices] TimeProvider clock,
+        [FromServices] TransactionClassifier classifier,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -136,6 +193,21 @@ public static class CashEndpoints
             CreatedAt = now,
             UpdatedAt = now,
         };
+
+        // Se clasifica antes de guardar y en la misma transacción, igual que en
+        // la ingesta de correo. Una categoría puesta por la cascada deja el
+        // movimiento listo; una sugerida lo deja en revisión con la respuesta
+        // escrita, que es un toque en vez de una lista de veinte categorías.
+        if (request.CategoryId is null)
+        {
+            await classifier.ApplyAsync(transaction, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            // La categoría vino en la petición: la puso una persona en la app.
+            transaction.CategoryConfirmedAt = now;
+            transaction.ClassificationSource = "Usuario";
+        }
 
         db.Transactions.Add(transaction);
 

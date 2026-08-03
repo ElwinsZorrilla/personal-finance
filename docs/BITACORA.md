@@ -108,4 +108,22 @@ Una línea por iteración cerrada.
             los tres Majors de la vuelta 2 estaban todos en la costura entre el
             motor y la base, que es donde el 99,8 % de cobertura no cubre nada
             deuda abierta: m27 (fase 12), m28 (fase 10)
+
+2026-08-03 · FASE-9 · efectivo desde el iPhone
+            CR-010 aprobada tras 1 vuelta · 1 Major corregido
+            las dos compuertas 1 en verde: 692 pruebas (601 .NET, 91 Flutter)
+            «Gasté 450 pesos en almuerzo» por POST /transactions/cash/phrase
+            el monto, el día y la moneda salen de expresiones regulares
+            deterministas · el modelo no toca la cifra, solo la categoría
+            dos rutas y no un cuerpo con dos formas válidas: la misma trampa
+            que llevó el PUT de movimientos a dejar de ser PATCH
+            M1: ganaba el primer número y «compré 2 panes de 25 pesos» habría
+            registrado 2 pesos · nada falla, nada avisa, solo la cifra está mal
+            ahora gana el número con la moneda pegada y si no, el primero
+            los numerales en palabras se rechazan: el dictado de iOS ya escribe
+            dígitos y media implementación enseñaría que funciona
+            la moneda extranjera se rechaza en vez de guardarse como pesos: no
+            hay tasa de cambio y elegir una sería inventarse una cifra
+            docs/atajo.md sin un solo secreto dentro, ni de ejemplo
+            deuda abierta: m29 (fase 12)
 ```

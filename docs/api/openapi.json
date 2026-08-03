@@ -57,6 +57,36 @@
         }
       }
     },
+    "/transactions/cash/phrase": {
+      "post": {
+        "tags": [
+          "Efectivo"
+        ],
+        "operationId": "CreateCashTransactionFromPhrase",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCashPhraseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/reconciliation": {
       "get": {
         "tags": [
@@ -817,6 +847,17 @@
               "string"
             ],
             "format": "date"
+          }
+        }
+      },
+      "CreateCashPhraseRequest": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
           }
         }
       },
