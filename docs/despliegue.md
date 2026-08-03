@@ -34,6 +34,22 @@ filtre, no hay por dónde usarla sin estar ya dentro del servidor.
 
 ## 1 · Construir las imágenes
 
+La PWA se compila fuera y la imagen solo la empaqueta:
+
+```bash
+cd app && flutter build web --release   --no-web-resources-cdn   --dart-define=USE_MOCKS=false   --dart-define=API_BASE_URL=https://TU-API && cd ..
+
+docker build -f app/Dockerfile   --build-arg API_BASE_URL=https://TU-API   -t TU-REGISTRO/margen-app:1.0 .
+```
+
+**`--no-web-resources-cdn` no es opcional.** Sin ella, Flutter pide su motor
+gráfico a `www.gstatic.com` en vez de al `canvaskit/` que copia al lado. La CSP
+no permite dominios de fuera, el navegador bloquea la descarga, y la app se
+queda cargando sin decir nada.
+
+Y aunque la CSP lo permitiera, no se querría: una app de finanzas que le pide un
+archivo a Google en cada arranque le está contando a Google cuándo la abres.
+
 ```bash
 docker build -f src/Margen.Api/Dockerfile -t TU-REGISTRO/margen-api:1.0 .
 docker build -f src/Margen.Worker/Dockerfile -t TU-REGISTRO/margen-worker:1.0 .
