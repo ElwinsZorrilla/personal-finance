@@ -91,6 +91,25 @@ docker compose logs api | tail -30
 `/health/ready` responde 503 mientras la base no esté lista o el esquema esté
 atrasado. Que responda 200 es la señal de que se puede enchufar el proxy.
 
+### Comprobación obligatoria: los tipos de contenido
+
+```bash
+for f in / /index.html /main.dart.js /manifest.json; do
+  echo -n "$f -> "; curl -sI "https://TU-DOMINIO$f" | grep -i "^content-type"
+done
+```
+
+Tiene que salir `text/html`, `text/html`, `application/javascript` y
+`application/json`. **Si sale `application/octet-stream`, el navegador
+descargará la página en vez de abrirla**, como un archivo llamado «data».
+
+No es una comprobación de más. Pasó: un bloque `types` en la configuración de
+nginx **sustituye la tabla entera** de tipos MIME en vez de añadirse a ella, así
+que declarar uno solo dejó todo lo demás sin tipo. `nginx -t` daba correcto, el
+contenedor arrancaba sano, el proxy respondía 200 y la app no se abría.
+
+Lo único que lo detecta es pedir la página y mirar la cabecera.
+
 ## 5 · El proxy
 
 En NPM, un *Proxy Host*:
