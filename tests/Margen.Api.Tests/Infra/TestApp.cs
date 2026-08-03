@@ -22,6 +22,7 @@ public sealed class TestApp(string connectionString, string? enrollmentCode)
         builder.UseEnvironment(Environments.Production);
         builder.UseSetting("ConnectionStrings:Default", connectionString);
         builder.UseSetting($"Auth:{nameof(Api.Auth.AuthOptions.EnrollmentCode)}", EnrollmentCode);
+        builder.UseSetting(Api.Cors.ConfigurationKey, "https://margen.ejemplo.do");
 
         builder.ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning));
     }

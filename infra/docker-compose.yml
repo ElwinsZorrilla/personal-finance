@@ -50,6 +50,11 @@ services:
       # Es a propósito: un servidor recién desplegado no puede quedar aceptando
       # el teléfono de quien pase por ahí.
       Auth__EnrollmentCode: ${AUTH_ENROLLMENT_CODE}
+      # De dónde se acepta que llamen. Es la PWA y nada más: este API se
+      # autentica con un token en una cabecera, y abrirlo a cualquier origen
+      # dejaría que una página cualquiera hiciera peticiones con el token de
+      # quien la visite. Vacío = no se permite ninguno.
+      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-}
       TZ: America/Santo_Domingo
     volumes:
       - dataprotection:/keys
@@ -123,6 +128,16 @@ services:
       TZ: America/Santo_Domingo
     networks:
       - internal
+      # El worker es el único que necesita **salir**: baja el correo del banco
+      # por IMAP. Estando solo en `internal`, que es `internal: true`, no tenía
+      # ni DNS ni ruta a internet y fallaba al conectar en cada vuelta.
+      #
+      # Es un fallo que solo existe desplegado: en local el worker corre con la
+      # red de la máquina y sale sin pedir permiso.
+      #
+      # `egress` da salida por NAT y **ninguna entrada**: no publica puertos y
+      # nadie de fuera puede iniciar una conexión hacia él.
+      - egress
     user: "1001:1001"
     read_only: true
     tmpfs:
@@ -193,6 +208,11 @@ networks:
     name: ${PROXY_NETWORK:-nginxproxymanager_default}
   internal:
     internal: true
+
+  # Salida a internet para el worker, y solo para el worker. La base, el API y
+  # el respaldo siguen sin poder salir.
+  egress:
+    driver: bridge
 
 volumes:
   pgdata:

@@ -105,8 +105,7 @@ public sealed partial class MailboxWorker(
                 Rejected(logger, sender);
 
                 // Se marca leído igual, para no volver a bajarlo en cada tanda.
-                await client.Inbox.AddFlagsAsync(uid, MessageFlags.Seen, true, cancellationToken)
-                    .ConfigureAwait(false);
+                await MarkSeenAsync(client, uid, logger, cancellationToken).ConfigureAwait(false);
                 continue;
             }
 
@@ -134,13 +133,44 @@ public sealed partial class MailboxWorker(
             // Se marca leído **después** de guardarlo. Al revés, una caída
             // entre las dos operaciones perdería el correo para siempre: el
             // banco no lo manda dos veces.
-            await client.Inbox.AddFlagsAsync(uid, MessageFlags.Seen, true, cancellationToken)
-                .ConfigureAwait(false);
+            await MarkSeenAsync(client, uid, logger, cancellationToken).ConfigureAwait(false);
         }
 
         await client.DisconnectAsync(true, cancellationToken).ConfigureAwait(false);
 
         return procesados;
+    }
+
+    /// <summary>
+    /// Marca un correo como leído, y **no revienta la tanda si no puede**.
+    /// </summary>
+    /// <remarks>
+    /// Gmail responde `NO System Error (Failure)` a algunos `STORE`, y ese
+    /// rechazo tumbaba la tanda entera: la vuelta siguiente empezaba por el
+    /// mismo correo, volvía a fallar, y el worker se quedaba en bucle sin
+    /// avanzar nunca. Lo peor es que los correos **sí** se estaban guardando:
+    /// el sistema parecía parado y estaba funcionando a medias.
+    ///
+    /// Marcar como leído es una comodidad, no la garantía de nada. Contra el
+    /// reproceso hay tres defensas en la base desde la Fase 6 —identificador de
+    /// mensaje, hash del cuerpo y huella del movimiento—, y las tres siguen en
+    /// pie aunque el correo se vuelva a bajar mil veces.
+    /// </remarks>
+    private static async Task MarkSeenAsync(
+        ImapClient client,
+        UniqueId uid,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await client.Inbox.AddFlagsAsync(uid, MessageFlags.Seen, true, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (ImapCommandException e)
+        {
+            NotMarked(logger, uid.Id, e.Message);
+        }
     }
 
     [LoggerMessage(
@@ -175,4 +205,11 @@ public sealed partial class MailboxWorker(
         Level = LogLevel.Information,
         Message = "Correo procesado con resultado {Outcome}.")]
     private static partial void Ingested(ILogger logger, IngestOutcome outcome);
+
+    [LoggerMessage(
+        EventId = 3006,
+        Level = LogLevel.Debug,
+        Message = "No se pudo marcar como leído el correo {Uid}: {Reason}. "
+            + "Se volverá a bajar y las defensas contra el duplicado lo descartarán.")]
+    private static partial void NotMarked(ILogger logger, uint uid, string reason);
 }

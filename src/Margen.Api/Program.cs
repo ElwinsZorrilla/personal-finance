@@ -63,6 +63,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+builder.Services.AddMargenCors(builder.Configuration);
 builder.Services.AddMargenRateLimiting();
 builder.Services.AddMargenOpenApi();
 
@@ -97,6 +98,14 @@ WebApplication app = builder.Build();
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+
+// CORS **antes** del límite de peticiones y de la autorización, y no es
+// preferencia de estilo: el preflight `OPTIONS` que manda el navegador no lleva
+// token, así que puesto después lo rechazaría la autorización con un 401 y el
+// navegador cancelaría la petición de verdad sin llegar a hacerla. Y contar los
+// preflight contra el límite gastaría la mitad del presupuesto en peticiones
+// que no piden nada.
+app.UseCors(Cors.PolicyName);
 
 app.UseRateLimiter();
 app.UseAuthentication();
