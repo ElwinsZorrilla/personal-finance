@@ -1,3 +1,5 @@
+using Margen.Domain;
+
 namespace Margen.Budget;
 
 /// <summary>

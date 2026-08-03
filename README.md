@@ -26,6 +26,7 @@ src/          .NET. Servidor.
   Margen.Domain/          Entidades y dinero. Sin una sola referencia.
   Margen.Infrastructure/  EF Core, esquema y migraciones.
   Margen.Budget/          Motor de presupuesto. Lógica pura, sin HTTP ni base.
+  Margen.Classify/        Cascada de clasificación y anomalías. Lógica pura.
   Margen.Ingest/          Parsers, huellas y duplicados. Lógica pura.
   Margen.Api/             ASP.NET Core. Salud y autenticación.
   Margen.Worker/          Lector del buzón y captura de muestras.
@@ -109,7 +110,7 @@ Y se lee `git diff --cached` buscando secretos.
 | 5 | Capa de datos en Flutter | Cerrada (CR-006) |
 | 6 | Ingesta de correo, sin parser de banco | Cerrada (CR-007) |
 | 7 | Parser del Banco Popular | Cerrada (CR-008) |
-| 8 | Clasificación y anomalías | |
+| 8 | Clasificación y anomalías | Cerrada (CR-009) |
 | 9 | Efectivo desde el iPhone | |
 | 10 | Conciliación | |
 | 11 | Empaquetado iOS | Depende de ADR-001 |

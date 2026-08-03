@@ -78,6 +78,8 @@ class TxRecord {
     required this.direction,
     required this.directionLabel,
     this.confidenceBasisPoints = 10000,
+    this.isCategoryConfirmed = false,
+    this.classificationSource,
   });
 
   final String id;
@@ -109,6 +111,16 @@ class TxRecord {
   /// un movimiento va a Revisión es el servidor, vía `status`; esto solo sirve
   /// para matizar cómo se dibuja.
   bool get isUncertain => confidenceBasisPoints < 7500;
+
+  /// La categoría la puso una persona, no un automatismo. Lo decide el
+  /// servidor; aquí solo sirve para que la pantalla de revisión distinga «lo
+  /// pusiste tú» de «se parece a Supermercado», que piden atención distinta.
+  final bool isCategoryConfirmed;
+
+  /// Qué escalón de la cascada puso la categoría. Texto del servidor, que se
+  /// enseña tal cual: traducirlo aquí sería el segundo sitio donde vive el
+  /// vocabulario de la clasificación.
+  final String? classificationSource;
 
   /// Un movimiento suma al gasto salvo que devuelva dinero o solo mueva saldo
   /// entre cuentas propias.

@@ -1,6 +1,7 @@
 using Margen.Domain;
 using Margen.Domain.Entities;
 using Margen.Infrastructure;
+using Margen.Infrastructure.Classification;
 using Margen.Ingest;
 using Microsoft.EntityFrameworkCore;
 
@@ -52,7 +53,8 @@ public sealed class EmailIngestor(
     MargenDbContext db,
     ParserRegistry parsers,
     TimeProvider clock,
-    DuplicateDetector? detector = null)
+    DuplicateDetector? detector = null,
+    TransactionClassifier? classifier = null)
 {
     private readonly DuplicateDetector _detector = detector ?? new DuplicateDetector();
 
@@ -252,8 +254,9 @@ public sealed class EmailIngestor(
             Currency = parsed.Currency,
             OccurredAt = parsed.OccurredAtUtc,
 
-            // Sin clasificar: eso es la Fase 8. Nace en revisión, que es donde
-            // debe estar algo cuya categoría no se sabe.
+            // Nace sin categoría y en revisión, que es donde debe estar algo
+            // cuya categoría no se sabe. La cascada lo mira justo debajo, y si
+            // no responde se queda exactamente así.
             CategoryId = null,
             Kind = parsed.Kind,
             Status = probable ? TxStatus.Duplicate : TxStatus.NeedsReview,
@@ -272,6 +275,15 @@ public sealed class EmailIngestor(
             CreatedAt = now,
             UpdatedAt = now,
         };
+
+        // La clasificación va **antes** de guardar y en la misma transacción:
+        // un movimiento escrito y una clasificación que falla después dejarían
+        // un correo marcado como procesado con su movimiento a medias, y el
+        // reproceso no lo volvería a mirar.
+        if (classifier is not null)
+        {
+            await classifier.ApplyAsync(transaction, cancellationToken).ConfigureAwait(false);
+        }
 
         db.Transactions.Add(transaction);
 

@@ -434,6 +434,8 @@ public sealed class BudgetAssembler(MargenDbContext db, TimeProvider clock)
             t.CategoryId,
             t.Category?.Name,
             t.Account?.LastFour ?? "----",
-            t.ConfidenceBasisPoints);
+            t.ConfidenceBasisPoints,
+            t.IsCategoryConfirmed,
+            t.ClassificationSource);
     }
 }

@@ -15,6 +15,7 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         builder.Property(t => t.Currency).HasMaxLength(3).IsFixedLength();
         builder.Property(t => t.Fingerprint).HasMaxLength(64);
         builder.Property(t => t.Notes).HasMaxLength(1000);
+        builder.Property(t => t.ClassificationSource).HasMaxLength(64);
 
         builder.Property(t => t.Kind).HasConversion<string>().HasMaxLength(32);
         builder.Property(t => t.Status).HasConversion<string>().HasMaxLength(32);
@@ -26,6 +27,7 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         builder.Ignore(t => t.SpendingEffect);
         builder.Ignore(t => t.BalanceEffect);
         builder.Ignore(t => t.IsIncome);
+        builder.Ignore(t => t.IsCategoryConfirmed);
 
         builder.HasOne(t => t.Account)
             .WithMany(a => a!.Transactions)
@@ -68,6 +70,12 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         // dirección: sin índice, las dos consultas recorren la tabla entera.
         builder.HasIndex(t => new { t.Direction, t.OccurredAt });
         builder.HasIndex(t => t.MerchantNormalized);
+
+        // La cascada pregunta esto por cada movimiento que entra: «qué
+        // categorías confirmó el usuario en este comercio». Parcial, porque solo
+        // interesan los confirmados y esos son una fracción de la tabla.
+        builder.HasIndex(t => new { t.MerchantNormalized, t.CategoryId })
+            .HasFilter("\"CategoryConfirmedAt\" IS NOT NULL");
 
         builder.ToTable(t =>
         {

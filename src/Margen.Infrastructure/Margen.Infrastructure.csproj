@@ -11,6 +11,12 @@
 
   <ItemGroup>
     <ProjectReference Include="../Margen.Domain/Margen.Domain.csproj" />
+
+    <!-- El motor de clasificación es lógica pura y no sabe leer una tabla.
+         Aquí vive lo que le lleva los datos y guarda lo que decide, y vive aquí
+         y no en el API porque el worker clasifica lo que entra por correo y el
+         API clasifica lo que entra a mano: dos llamadores, una implementación. -->
+    <ProjectReference Include="../Margen.Classify/Margen.Classify.csproj" />
   </ItemGroup>
 
 </Project>

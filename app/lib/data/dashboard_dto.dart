@@ -90,6 +90,8 @@ abstract final class DashboardDto {
       direction: _direction(_string(json, 'direction')),
       directionLabel: _string(json, 'directionLabel'),
       confidenceBasisPoints: _int(json, 'confidenceBasisPoints'),
+      isCategoryConfirmed: json['isCategoryConfirmed'] == true,
+      classificationSource: json['classificationSource'] as String?,
     );
   }
 

@@ -1,4 +1,5 @@
 using Margen.Api.Budget;
+using Margen.Classify;
 using Margen.Domain;
 using Margen.Domain.Entities;
 using Margen.Infrastructure;
@@ -30,6 +31,14 @@ internal sealed class Seed
     public Guid RentId { get; private set; }
 
     public Guid FunId { get; private set; }
+
+    /// <summary>
+    /// Se llama exactamente como la conoce el clasificador local. Es lo que
+    /// permite comprobar la cascada de punta a punta: la tabla de palabras
+    /// devuelve un **nombre** y solo existe categoría si alguien la creó con ese
+    /// nombre.
+    /// </summary>
+    public Guid MarketId { get; private set; }
 
     public DateOnly Start { get; private set; }
 
@@ -71,6 +80,7 @@ internal sealed class Seed
             FoodId = Guid.CreateVersion7(),
             RentId = Guid.CreateVersion7(),
             FunId = Guid.CreateVersion7(),
+            MarketId = Guid.CreateVersion7(),
 
             // Ciclo de 30 días con hoy justo a la mitad, para que el ritmo y el
             // disponible diario tengan algo que decir.
@@ -133,6 +143,13 @@ internal sealed class Seed
                 Id = seed.FunId,
                 Name = "Ocio",
                 Priority = Priority.Optional,
+                CreatedAt = now,
+            },
+            new Category
+            {
+                Id = seed.MarketId,
+                Name = CategoryNames.Supermercado,
+                Priority = Priority.Essential,
                 CreatedAt = now,
             });
 

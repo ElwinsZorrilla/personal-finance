@@ -65,6 +65,36 @@ public class Transaction
     public int ConfidenceBasisPoints { get; set; } = 10000;
 
     /// <summary>
+    /// Cuándo una persona confirmó esta categoría. Nulo mientras la haya puesto
+    /// solo el automatismo.
+    /// </summary>
+    /// <remarks>
+    /// Es lo que impide que la clasificación se muerda la cola. El escalón del
+    /// historial mira «qué categoría le puso el usuario a este comercio», y sin
+    /// esta columna no habría manera de distinguir eso de «qué categoría le puso
+    /// el automatismo»: la tabla de palabras clasificaría diez movimientos mal,
+    /// el historial los leería como confirmación, y el error quedaría fijado con
+    /// confianza alta sin que nadie pueda ver de dónde salió.
+    ///
+    /// Un automatismo que se cita a sí mismo como fuente no es historial, es un
+    /// eco.
+    /// </remarks>
+    public DateTime? CategoryConfirmedAt { get; set; }
+
+    /// <summary>
+    /// Qué escalón de la cascada puso esta categoría, en texto.
+    /// </summary>
+    /// <remarks>
+    /// Se guarda para que la pantalla de revisión pueda decir **por qué** algo
+    /// está donde está. «Regla del usuario» y «se parece a Supermercado» piden
+    /// atención distinta, y sin esto las dos se ven igual.
+    /// </remarks>
+    public string? ClassificationSource { get; set; }
+
+    /// <summary>La categoría la puso una persona, no un automatismo.</summary>
+    public bool IsCategoryConfirmed => CategoryConfirmedAt is not null;
+
+    /// <summary>
     /// Movimiento del que este es devolución. Permite que una devolución
     /// reduzca el gasto de su categoría original en lugar de aparecer como
     /// ingreso suelto.

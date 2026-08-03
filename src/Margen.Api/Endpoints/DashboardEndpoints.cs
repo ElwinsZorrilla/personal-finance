@@ -1,5 +1,6 @@
 using Margen.Api.Budget;
 using Margen.Budget;
+using Margen.Domain;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Margen.Api.Endpoints;

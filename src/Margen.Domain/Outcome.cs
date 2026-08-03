@@ -1,4 +1,4 @@
-namespace Margen.Budget;
+namespace Margen.Domain;
 
 public enum OutcomeKind
 {

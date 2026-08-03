@@ -1289,7 +1289,9 @@
           "categoryId",
           "categoryName",
           "accountLastFour",
-          "confidenceBasisPoints"
+          "confidenceBasisPoints",
+          "isCategoryConfirmed",
+          "classificationSource"
         ],
         "type": "object",
         "properties": {
@@ -1360,6 +1362,15 @@
               "string"
             ],
             "format": "int32"
+          },
+          "isCategoryConfirmed": {
+            "type": "boolean"
+          },
+          "classificationSource": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       }

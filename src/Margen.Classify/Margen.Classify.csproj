@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Una sola referencia, igual que el motor de presupuesto. Decide categorías
+       a partir de lo que le pasan: no sabe leer un correo, no sabe consultar una
+       tabla y no sabe qué hora es. Todo entra por parámetro.
+
+       En particular NO referencia a Margen.Ingest aunque la ingesta sea hoy su
+       único llamador. El efectivo del Atajo -Fase 9- y el CSV del banco -Fase
+       10- también se clasifican, y ninguno pasa por un correo. -->
+
+  <ItemGroup>
+    <ProjectReference Include="../Margen.Domain/Margen.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

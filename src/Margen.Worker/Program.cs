@@ -1,4 +1,5 @@
 using Margen.Infrastructure;
+using Margen.Infrastructure.Classification;
 using Margen.Ingest;
 using Margen.Worker;
 using Margen.Worker.Ingestion;
@@ -38,6 +39,13 @@ if (servicio || reprocesar)
     // es una carrera que se resuelve con un bloqueo que a veces no llega a
     // tiempo.
     builder.Services.AddMargenDatabase(builder.Configuration);
+
+    // El clasificador y el detector de anomalías. Sin ICategorySuggester
+    // registrado, la cascada corre sus cuatro escalones locales y se salta el
+    // modelo: no hay proveedor decidido, y enchufar uno a escondidas sería
+    // tomar esa decisión sin que nadie la vea.
+    builder.Services.AddScoped<TransactionClassifier>();
+    builder.Services.AddScoped<AnomalyScanner>();
 }
 
 if (servicio)

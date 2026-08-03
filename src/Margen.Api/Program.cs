@@ -4,19 +4,48 @@ using Margen.Api.Budget;
 using Margen.Api.Endpoints;
 using Margen.Api.Health;
 using Margen.Infrastructure;
+using Margen.Infrastructure.Classification;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddMargenDatabase(builder.Configuration);
+// Qué se va a hacer, antes de montar nada. Regenerar el contrato lee el mapa de
+// rutas y no toca una sola fila, así que exigirle una cadena de conexión lo
+// hacía fallar por algo que no usa. Mismo error que tenía la captura de
+// muestras del worker, mismo arreglo: decidir el modo primero.
+bool generarContrato = args.Contains("--generar-contrato", StringComparer.Ordinal);
+
+if (generarContrato)
+{
+    // Se registra el contexto **sin proveedor**: el contrato sale de recorrer el
+    // mapa de rutas y nunca se abre una conexión. Resolverlo lanzaría, y por eso
+    // es la forma correcta de decirlo —si algún día generar el contrato acabara
+    // tocando la base, esto falla en vez de conectarse a algo a escondidas—.
+    //
+    // Y no una cadena de mentira en el fuente: un marcador con forma de
+    // credencial es lo que alguien rellena con la de verdad sin pensarlo.
+    builder.Services.AddDbContext<MargenDbContext>();
+}
+else
+{
+    builder.Services.AddMargenDatabase(builder.Configuration);
+}
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<DeviceService>();
 builder.Services.AddScoped<BudgetAssembler>();
+
+// Clasificación. Sin ICategorySuggester registrado, la cascada corre sus cuatro
+// escalones locales y se salta el modelo: no hay proveedor decidido, y enchufar
+// uno a escondidas sería tomar esa decisión sin que nadie la vea.
+builder.Services.AddScoped<RuleWriter>();
+builder.Services.AddScoped<TransactionClassifier>();
+builder.Services.AddScoped<AnomalyScanner>();
 
 // El único camino de entrada es Nginx Proxy Manager. Sin procesar las cabeceras
 // reenviadas, la dirección de origen de toda petición sería la del proxy y el
@@ -49,7 +78,13 @@ builder.Services.AddAuthorizationBuilder().AddMargenPolicies();
 builder.Services.AddHealthChecks()
     .AddCheck<DatabaseReadyCheck>("base", tags: ["ready"]);
 
-builder.Services.AddHostedService<MigrationHostedService>();
+// Tampoco el migrador: generar el contrato arrancaba el servicio de migración,
+// que intentaba conectarse y dejaba una excepción en la salida. El archivo se
+// escribía igual, que es la peor forma de fallar —parece que fue bien—.
+if (!generarContrato)
+{
+    builder.Services.AddHostedService<MigrationHostedService>();
+}
 
 // Toda respuesta de error sale como ProblemDetails. Sin esto, una excepción sin
 // atrapar devuelve la página de error de ASP.NET Core con la traza dentro.
@@ -105,7 +140,7 @@ app.MapOpenApi("/openapi/v1.json").AllowAnonymous();
 //   dotnet run --project src/Margen.Api -- --generar-contrato
 // Se hace desde la aplicación real y no desde una herramienta aparte para que
 // el archivo versionado no pueda divergir de lo que el servidor sirve.
-if (args.Contains("--generar-contrato", StringComparer.Ordinal))
+if (generarContrato)
 {
     await ContractWriter.WriteAsync(app);
     return;

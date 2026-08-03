@@ -1,6 +1,7 @@
 using Margen.Domain;
 using Margen.Domain.Entities;
 using Margen.Infrastructure;
+using Margen.Infrastructure.Classification;
 using Margen.Ingest;
 using Microsoft.EntityFrameworkCore;
 
@@ -59,7 +60,12 @@ public static class Reprocessor
                 || e.ParserVersion < actual)];
         }
 
-        var ingestor = new EmailIngestor(db, parsers, clock);
+        var ingestor = new EmailIngestor(
+            db,
+            parsers,
+            clock,
+            detector: null,
+            classifier: scope.ServiceProvider.GetRequiredService<TransactionClassifier>());
         var resumen = new Dictionary<IngestOutcome, int>();
 
         foreach (IncomingEmail email in pendientes)

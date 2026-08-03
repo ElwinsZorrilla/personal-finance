@@ -1,4 +1,5 @@
 using Margen.Budget;
+using Margen.Domain;
 
 namespace Margen.Api.Budget;
 
@@ -85,7 +86,22 @@ public sealed record TransactionView(
     Guid? CategoryId,
     string? CategoryName,
     string AccountLastFour,
-    int ConfidenceBasisPoints);
+    int ConfidenceBasisPoints,
+
+    /// <summary>
+    /// La categoría la puso una persona, no un automatismo.
+    /// </summary>
+    /// <remarks>
+    /// La pantalla de revisión necesita distinguirlo: «lo pusiste tú» y «se
+    /// parece a Supermercado» piden atención distinta y sin esto se ven igual.
+    /// </remarks>
+    bool IsCategoryConfirmed,
+
+    /// <summary>
+    /// Qué escalón de la cascada la puso: `UserRule`, `PatternRule`, `History`,
+    /// `LocalTable`, `Model`, `Usuario`. Nulo si no tiene categoría.
+    /// </summary>
+    string? ClassificationSource);
 
 /// <summary>
 /// Todo lo que la pantalla principal necesita, ya resuelto.

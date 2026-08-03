@@ -1,7 +1,9 @@
 using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Search;
+using Margen.Domain;
 using Margen.Infrastructure;
+using Margen.Infrastructure.Classification;
 using Margen.Ingest;
 using Microsoft.Extensions.Options;
 using MimeKit;
@@ -119,7 +121,9 @@ public sealed partial class MailboxWorker(
             var ingestor = new EmailIngestor(
                 scope.ServiceProvider.GetRequiredService<MargenDbContext>(),
                 scope.ServiceProvider.GetRequiredService<ParserRegistry>(),
-                scope.ServiceProvider.GetRequiredService<TimeProvider>());
+                scope.ServiceProvider.GetRequiredService<TimeProvider>(),
+                detector: null,
+                classifier: scope.ServiceProvider.GetRequiredService<TransactionClassifier>());
 
             IngestReport report = await ingestor.IngestAsync(raw, cancellationToken)
                 .ConfigureAwait(false);

@@ -1,4 +1,5 @@
 using Margen.Budget;
+using Margen.Domain;
 
 namespace Margen.Api.Endpoints;
 

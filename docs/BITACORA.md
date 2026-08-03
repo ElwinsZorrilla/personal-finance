@@ -87,4 +87,25 @@ Una línea por iteración cerrada.
             faltan tres avisos que no estaban en los 209 correos del buzón:
             compra rechazada, devolución y pago de tarjeta
             deuda m23 pagada
+
+2026-08-03 · FASE-8 · clasificación y anomalías
+            CR-009 aprobada tras 2 vueltas · 5 Majors corregidos
+            las dos compuertas 1 en verde: 634 pruebas (543 .NET, 91 Flutter)
+            Margen.Classify: 99,8 % de líneas, 98,3 % de ramas
+            proyecto nuevo Margen.Classify, lógica pura como el de presupuesto
+            Outcome<T> se muda a Margen.Domain: ya lo necesitan dos motores
+            el modelo sugiere y NUNCA decide · tres defensas, y la que importa
+            es la del origen porque no depende de que nadie mueva un número
+            la firma del puerto no admite Money, ni fecha, ni cuenta
+            M1: UBER*EATS iba a transporte · el banco pega las palabras con
+            asterisco y «UBER EATS» no estaba contenido · lo destapó la prueba
+            sembrada con los seis comercios reales de la Fase 7
+            M2: el historial se habría mordido la cola · columna
+            CategoryConfirmedAt para que el automatismo no se cite a sí mismo
+            mediana y desviación absoluta mediana, no media y desviación típica:
+            cinco compras de 300 y una de 40 000 dan media 6 900, y ese rango no
+            marca como raro justamente el cargo raro
+            los tres Majors de la vuelta 2 estaban todos en la costura entre el
+            motor y la base, que es donde el 99,8 % de cobertura no cubre nada
+            deuda abierta: m27 (fase 12), m28 (fase 10)
 ```

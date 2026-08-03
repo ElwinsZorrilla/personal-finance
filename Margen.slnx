@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Margen.Api/Margen.Api.csproj" />
     <Project Path="src/Margen.Budget/Margen.Budget.csproj" />
+    <Project Path="src/Margen.Classify/Margen.Classify.csproj" />
     <Project Path="src/Margen.Domain/Margen.Domain.csproj" />
     <Project Path="src/Margen.Infrastructure/Margen.Infrastructure.csproj" />
     <Project Path="src/Margen.Ingest/Margen.Ingest.csproj" />
@@ -10,6 +11,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Margen.Api.Tests/Margen.Api.Tests.csproj" />
     <Project Path="tests/Margen.Budget.Tests/Margen.Budget.Tests.csproj" />
+    <Project Path="tests/Margen.Classify.Tests/Margen.Classify.Tests.csproj" />
     <Project Path="tests/Margen.Domain.Tests/Margen.Domain.Tests.csproj" />
     <Project Path="tests/Margen.Ingest.Tests/Margen.Ingest.Tests.csproj" />
   </Folder>

@@ -7,6 +7,7 @@ using Margen.Api.Contracts;
 using Margen.Domain;
 using Margen.Domain.Entities;
 using Margen.Infrastructure;
+using Margen.Infrastructure.Classification;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -139,6 +140,7 @@ public static class TransactionEndpoints
         [FromBody] PutTransactionRequest request,
         [FromServices] MargenDbContext db,
         [FromServices] TimeProvider clock,
+        [FromServices] RuleWriter rules,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -183,6 +185,16 @@ public static class TransactionEndpoints
         // sube al máximo y el movimiento sale de Revisión.
         row.ConfidenceBasisPoints = 10000;
 
+        // **Aquí es donde el historial deja de ser un eco.** Marcar quién puso
+        // la categoría es lo que permite que el escalón del historial cuente
+        // solo lo que confirmó una persona, y no lo que dedujo la máquina y
+        // luego se leyó a sí misma como confirmación.
+        //
+        // Descategorizar también se registra: quitar la categoría es una
+        // decisión, y dejar la marca antigua diría que sigue confirmada.
+        row.CategoryConfirmedAt = request.CategoryId is null ? null : now;
+        row.ClassificationSource = request.CategoryId is null ? null : "Usuario";
+
         if (request.Status is not null)
         {
             row.Status = Enum.Parse<TxStatus>(request.Status, ignoreCase: true);
@@ -194,7 +206,9 @@ public static class TransactionEndpoints
 
         if (request.CreateRule && request.CategoryId is Guid destino)
         {
-            await EnsureRuleAsync(db, row.MerchantNormalized, destino, now, cancellationToken)
+            // La misma pieza probada que usa el worker. Ni una segunda copia de
+            // «crear o actualizar sin apilar» viviendo en un endpoint.
+            await rules.LearnAsync(row.MerchantNormalized, destino, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -202,56 +216,6 @@ public static class TransactionEndpoints
 
         return Results.Ok(BudgetAssembler.ToView(row));
     }
-
-    /// <summary>
-    /// Crea la regla de la corrección, o sube la existente al peso del usuario.
-    /// </summary>
-    /// <remarks>
-    /// Idempotente a propósito: corregir dos veces el mismo comercio no puede
-    /// dejar dos reglas idénticas compitiendo por peso. El índice único de la
-    /// Fase 2 lo impediría con una excepción; esto lo resuelve antes de llegar
-    /// ahí.
-    /// </remarks>
-    private static async Task EnsureRuleAsync(
-        MargenDbContext db,
-        string pattern,
-        Guid categoryId,
-        DateTime now,
-        CancellationToken cancellationToken)
-    {
-        MerchantRule? existing = await db.MerchantRules
-            .FirstOrDefaultAsync(
-                r => r.Pattern == pattern && r.MatchKind == MatchKind.Exact,
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        if (existing is not null)
-        {
-            existing.CategoryId = categoryId;
-            existing.IsUserDefined = true;
-            existing.IsActive = true;
-            existing.Weight = Math.Max(existing.Weight, UserRuleWeight);
-            return;
-        }
-
-        db.MerchantRules.Add(new MerchantRule
-        {
-            Id = Guid.CreateVersion7(),
-            Pattern = pattern,
-            MatchKind = MatchKind.Exact,
-            CategoryId = categoryId,
-            Weight = UserRuleWeight,
-            IsUserDefined = true,
-            CreatedAt = now,
-        });
-    }
-
-    /// <summary>
-    /// Peso de una regla creada por una corrección explícita. Por encima de
-    /// cualquier regla deducida del historial: lo que dijo una persona pesa más
-    /// que una estadística.
-    /// </summary>
-    internal const int UserRuleWeight = 1000;
 
     /// <summary>
     /// Huella de un movimiento: cuenta, día local, monto y comercio.
