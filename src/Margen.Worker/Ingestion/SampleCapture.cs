@@ -341,6 +341,15 @@ public static class SampleCapture
 
             _ when s.Contains("pago", StringComparison.Ordinal) => "pago-tarjeta",
 
+            // Qik avisa de sus movimientos de tarjeta con tres asuntos —«Usaste
+            // tu tarjeta», «Se hizo una transacción con tu tarjeta», «Se intentó
+            // realizar una compra con tu tarjeta»— y **ninguno dice si pasó**:
+            // los tres aparecen en compras aprobadas y en declinadas. Llamarlas
+            // `compra-aprobada` sería escribir una mentira en el nombre del
+            // archivo. Va antes que la rama de «compra» porque uno de los tres
+            // lleva esa palabra.
+            _ when s.Contains("tu tarjeta", StringComparison.Ordinal) => "tarjeta",
+
             _ when s.Contains("consumo", StringComparison.Ordinal)
                 || s.Contains("compra", StringComparison.Ordinal) => "compra-aprobada",
 

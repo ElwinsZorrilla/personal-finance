@@ -148,4 +148,24 @@ Una línea por iteración cerrada.
             M3: una línea aproximada se quedaba con el movimiento de una exacta
             el cierre de período recomienda desde lo GASTADO, no lo asignado
             deuda abierta: m30 (fase 12), m31 (fase 11)
+
+2026-08-03 · SEGUNDO BANCO · Qik Banco Digital Dominicano
+            CR-012 aprobada tras 1 vuelta · 1 Blocker corregido
+            las dos compuertas 1 en verde: 795 pruebas (704 .NET, 91 Flutter)
+            23 muestras de dos bancos: 19 leídas, 4 a revisión, 0 ajenas
+            las cuatro de revisión son compras que el banco declinó
+            B1: el redactor dejó un apellido real en el disco · Qik saluda con
+            «¡Hola NOMBRE APELLIDO!» y no usa ninguna etiqueta formal · sexta
+            fuga de esta clase y las seis por un formato no visto antes
+            EL ASUNTO DE QIK NO DICE SI LA TRANSACCIÓN PASÓ: sus tres asuntos
+            aparecen en aprobadas y en declinadas, manda el cuerpo · fiarse del
+            asunto habría creado cuatro movimientos que nunca existieron y nada
+            habría fallado
+            ValueBelow es un lector NUEVO, no uno más permisivo: fundirlo con
+            ValueAfter reintroduce M5 de la Fase 7
+            cuarta forma de fecha y primera que empieza por el mes:
+            06-20-2026 11:57 AM (AST) · se fija MM-dd a propósito
+            añadir el banco costó un parser y CERO cambios en ingesta,
+            clasificación, conciliación y presupuesto
+            deuda abierta: m32 (cuando lleguen los avisos que faltan)
 ```

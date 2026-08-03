@@ -32,4 +32,5 @@ una columna «Se paga en».
 | m29 | CR-010 | Un reintento del Atajo responde 409 en vez de 200 con el movimiento que ya existe | En los dos casos la acción correcta es no hacer nada, y el mensaje dice qué hacer si de verdad fueron dos gastos. Distinguirlos pide una clave de idempotencia del cliente, con columna, índice y migración | Fase 12, si el uso real lo pide |
 | m30 | CR-011 | El emparejamiento de la conciliación es O(líneas × movimientos) | Con un estado de cuenta mensual son decenas de líneas por cientos de movimientos; indexarlo ahora sería optimizar sin medir | Fase 12, con medición real |
 | m31 | CR-011 | El estado «ignorado» de la conciliación se calcula pero nadie lo puede fijar | Fijarlo necesita una pantalla donde una persona marque la línea, y esa pantalla no existe | Fase 11, con el cliente iOS |
+| m32 | CR-012 | De Qik solo hay avisos de tarjeta: faltan depósito, transferencia y pago | No aparecieron en 75 correos. El parser no los inventa —lo que no reconoce va a Revisión sin crear nada—, y escribirlos contra un formato supuesto es el error que bloqueó la Fase 7 | Cuando lleguen al buzón: capturar, ampliar el parser y `--reprocesar` |
 

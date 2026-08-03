@@ -435,6 +435,19 @@ public sealed class SampleTypeTests
         Assert.NotEmpty(slug);
     }
 
+    [Theory]
+    [InlineData("Usaste tu tarjeta de débito Qik")]
+    [InlineData("Se hizo una transacción con tu tarjeta de débito Qik")]
+    [InlineData("Se intentó realizar una compra con tu tarjeta de débito Qik")]
+    public void los_avisos_de_tarjeta_de_qik_no_se_llaman_aprobados(string asunto)
+    {
+        // Los tres asuntos aparecen en compras aprobadas y en declinadas, así
+        // que llamarlas `compra-aprobada` sería escribir una mentira en el
+        // nombre del archivo. Uno de los tres lleva la palabra «compra», y por
+        // eso el orden de las ramas importa.
+        Assert.Equal("tarjeta", Margen.Worker.Ingestion.SampleCapture.TypeOf(asunto));
+    }
+
     [Fact]
     public void un_asunto_desconocido_sigue_siendo_una_muestra_util()
     {

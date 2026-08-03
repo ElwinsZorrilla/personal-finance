@@ -9,7 +9,7 @@ public class Device
 {
     public Guid Id { get; set; }
 
-    /// <summary>Nombre legible: «iPhone de Elwin». Solo para poder revocarlo a ojo.</summary>
+    /// <summary>Nombre legible: «iPhone de Maria». Solo para poder revocarlo a ojo.</summary>
     public required string Name { get; set; }
 
     /// <summary>

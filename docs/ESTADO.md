@@ -6,7 +6,7 @@ Estado: **cerrada**
 Paso: 7 de 7 (NEXT)
 Vuelta: 1 de 3
 Compuerta 1: verde en las dos
-Revisión: CR-011 aprobada
+Revisión: CR-011 aprobada · CR-012 (segundo banco)
 Veredicto: **APROBADA**
 Bloqueo: -
 
@@ -29,7 +29,15 @@ por remitente, así que el banco nuevo no toca a los que ya funcionan.
 | Banco | Parser | Muestras |
 |---|---|---|
 | Banco Popular | Escrito y aprobado (CR-008) | 16, faltan 3 tipos |
+| Qik Banco Digital | Escrito y aprobado (CR-012) | 7, solo avisos de tarjeta |
 | Los demás | **Pendiente** | **Pendientes de capturar** |
+
+Contra las 23 muestras reales: **19 leídas, 4 a revisión, 0 ajenas**. Las cuatro
+son compras que el banco declinó y que no crean movimiento.
+
+**El asunto de Qik no dice si la transacción pasó.** Sus tres asuntos aparecen
+en aprobadas y en declinadas, así que lo decide el cuerpo. En el Popular es al
+revés: allí el asunto sí decide el tipo.
 
 ## La conciliación
 
@@ -86,7 +94,9 @@ los compromisos no caben en el sueldo.
 | 9 · Efectivo desde el iPhone | Cerrada | CR-010 | 41 entre `Ingest` e integración |
 | 10 · Conciliación | Cerrada | CR-011 | 56 puras + 15 de integración |
 
-**771 pruebas**: 680 en .NET, 91 en Flutter. Las dos compuertas 1 en verde.
+| — · Segundo banco: Qik | Cerrado | CR-012 | 18 en `Ingest` |
+
+**795 pruebas**: 704 en .NET, 91 en Flutter. Las dos compuertas 1 en verde.
 Cobertura de `Margen.Classify`: 99,8 % de líneas, 98,3 % de ramas.
 
 ## Lo que necesito del humano
@@ -98,12 +108,12 @@ Cobertura de `Margen.Classify`: 99,8 % de líneas, 98,3 % de ramas.
 4. **Relanzar la revisión adversarial del motor** (m15) antes de fusionar la
    Fase 3: CR-003 la respalda un solo lector.
 4. **El merge a `main`.** Diez ramas publicadas, ninguna fusionada.
-5. **Capturar los otros bancos.** Pon sus remitentes en `IMAP_ALLOWED_SENDERS`
-   —separados por comas— y corre `--capturar-muestras`. Sin sus muestras no se
-   les puede escribir parser, y sus movimientos solo entrarán por la
-   conciliación del estado de cuenta.
-6. **Guardar los avisos que faltan del Popular** si te llegan: compra
-   rechazada, devolución y pago de tarjeta.
+5. **Capturar el resto de bancos, si hay más.** Pon sus remitentes en
+   `IMAP_ALLOWED_SENDERS` —separados por comas— y corre `--capturar-muestras`.
+6. **Guardar los avisos que faltan**: del Popular, compra rechazada, devolución
+   y pago de tarjeta; de Qik, depósito, transferencia y pago. Ninguno apareció
+   en el buzón, y el parser no se los inventa: lo que no reconoce va a
+   Revisión.
 
 ## Lo que sigue
 

@@ -89,8 +89,8 @@ public sealed partial class Redactor(RedactionSettings settings)
         // Los términos que da el usuario, palabra por palabra.
         //
         // La primera versión buscaba la frase entera y falló con las muestras
-        // reales por dos caminos: el banco escribe «SR ELWIN ZORRILLA ESPINAL»
-        // —con un apellido de más— y también «ZORRILLA ESPINAL E», en otro
+        // reales por dos caminos: el banco escribe «SR MARIA PEREZ GOMEZ»
+        // —con un apellido de más— y también «PEREZ GOMEZ E», en otro
         // orden. Ninguna de las dos contiene la frase que se le dio, así que
         // ninguna se sustituyó.
         foreach (string word in _settings.Words)
@@ -283,9 +283,19 @@ public sealed partial class Redactor(RedactionSettings settings)
     /// que el nombre termina donde empieza una etiqueta HTML, una entidad o el
     /// fin de línea. El tope de sesenta caracteres es para que un correo mal
     /// formado no se coma el documento entero.
+    ///
+    /// `Hola` está en la lista desde que apareció el segundo banco: Qik saluda
+    /// con «¡Hola NOMBRE APELLIDO!» y ninguna de las etiquetas formales
+    /// —Estimado, Titular, Cliente— aparece en sus correos. Con la lista de
+    /// términos personales bastó para dos de las tres palabras del nombre, y la
+    /// tercera se escribió tal cual en el disco.
+    ///
+    /// El separador admite coma porque los dos saludos existen: «¡Hola,
+    /// NOMBRE!» y «¡Hola NOMBRE APELLIDO!», en plantillas distintas del mismo
+    /// banco.
     /// </remarks>
     [GeneratedRegex(
-        @"(?<etiqueta>(?:Estimad[oa]\s*\(a\)|Estimad[oa]|Beneficiari[oa]|Titular|Destinatari[oa]|Ordenante|Remitente\s+de\s+fondos|A\s+nombre\s+de|Cliente)\s*:?\s*(?:&nbsp;|\s)*)(?<nombre>\p{Lu}[\p{Lu}\p{M}.\s]{2,60}?)(?=\s*(?:<|&nbsp;|\r|\n|,|$))",
+        @"(?<etiqueta>(?:Estimad[oa]\s*\(a\)|Estimad[oa]|Beneficiari[oa]|Titular|Destinatari[oa]|Ordenante|Remitente\s+de\s+fondos|A\s+nombre\s+de|Cliente|Hola)\s*[,:]?\s*(?:&nbsp;|\s)*)(?<nombre>\p{Lu}[\p{Lu}\p{M}.\s]{2,60}?)(?=\s*(?:<|&nbsp;|!|¡|\r|\n|,|$))",
         RegexOptions.IgnoreCase,
         matchTimeoutMilliseconds: 2000)]
     private static partial Regex NameAfterLabelPattern();

@@ -24,11 +24,13 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddOptions<MailboxOptions>()
     .Bind(builder.Configuration.GetSection(MailboxOptions.SectionName));
 
-// El registro de parsers, en orden. El del Banco Popular va primero porque es
-// el que existe de verdad; el sintético se queda detrás para que la tubería
-// siga teniendo una prueba de punta a punta que no dependa de un banco real.
+// El registro de parsers, en orden. Cada banco elige por remitente, así que
+// añadir uno no toca a los que ya funcionan; el sintético se queda al final
+// para que la tubería siga teniendo una prueba de punta a punta que no dependa
+// de ningún banco real.
 builder.Services.AddSingleton(new ParserRegistry([
     new PopularParser(),
+    new QikParser(),
     new SampleBankParser(),
 ]));
 

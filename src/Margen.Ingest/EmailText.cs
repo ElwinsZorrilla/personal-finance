@@ -93,6 +93,51 @@ public static partial class EmailText
         return null;
     }
 
+    /// <summary>
+    /// El valor de la **línea siguiente** a la que contiene solo la etiqueta.
+    /// </summary>
+    /// <remarks>
+    /// Es la otra forma de escribir una tabla, y va aparte de
+    /// <see cref="ValueAfter"/> a propósito.
+    ///
+    /// El Popular pone etiqueta y valor en la misma celda o en la misma fila
+    /// aplanada; Qik los pone en dos celdas de una fila de dos columnas, que al
+    /// normalizar quedan en dos líneas. Son formas distintas y cada una tiene su
+    /// lector con su nombre.
+    ///
+    /// Fundirlas en un solo «prueba en la misma línea y si no en la siguiente»
+    /// reintroduciría el defecto M5 de la Fase 7: «Canal» es un encabezado sin
+    /// valor al lado, y el lector permisivo devolvía la primera celda de la fila
+    /// de valores —el importe— como si fuera el canal. Sin síntoma: el
+    /// movimiento se leía bien y solo el comercio mentía.
+    ///
+    /// La etiqueta tiene que ocupar la línea entera. Si compartiera línea con
+    /// otra cosa, el valor de la siguiente no le pertenece.
+    /// </remarks>
+    public static string? ValueBelow(string text, params string[] labels)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(labels);
+
+        string[] lines = text.Split('\n');
+
+        foreach (string label in labels)
+        {
+            for (int i = 0; i < lines.Length - 1; i++)
+            {
+                if (!string.Equals(lines[i].Trim(), label, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                string value = lines[i + 1].Trim();
+                if (value.Length > 0) return value;
+            }
+        }
+
+        return null;
+    }
+
     private static bool LooksLikeHtml(string text) =>
         text.Contains("<html", StringComparison.OrdinalIgnoreCase)
         || text.Contains("<td", StringComparison.OrdinalIgnoreCase)

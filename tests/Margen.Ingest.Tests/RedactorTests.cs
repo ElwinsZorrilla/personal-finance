@@ -13,26 +13,61 @@ public sealed class RedactorTests
     [Fact]
     public void el_nombre_desaparece()
     {
-        string limpio = Con("Elwin Zorrilla")
-            .Redact("Estimado Elwin Zorrilla, su compra fue aprobada.");
+        string limpio = Con("Maria Perez")
+            .Redact("Estimado Maria Perez, su compra fue aprobada.");
 
-        Assert.DoesNotContain("Elwin", limpio, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("Zorrilla", limpio, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Maria", limpio, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Perez", limpio, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("NOMBRE APELLIDO", limpio, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void el_saludo_informal_del_segundo_banco_tambien_lleva_nombre()
+    {
+        // Qik saluda con «¡Hola NOMBRE APELLIDO!» y no usa ninguna de las
+        // etiquetas formales. La lista de términos personales cubrió dos de las
+        // tres palabras del nombre real, y **la tercera se escribió tal cual en
+        // el disco**: un apellido que nadie había puesto en la lista.
+        string limpio = Con("Maria Perez")
+            .Redact("<strong>¡Hola MARIA PEREZ GOMEZ!</strong>");
+
+        Assert.DoesNotContain("GOMEZ", limpio, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("PEREZ", limpio, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Hola", limpio, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void el_saludo_con_coma_tambien()
+    {
+        // El mismo banco usa las dos formas en plantillas distintas.
+        string limpio = Con("Maria").Redact("<td>¡Hola, MARIA PEREZ!</td>");
+
+        Assert.DoesNotContain("PEREZ", limpio, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void el_saludo_no_se_come_el_texto_que_sigue()
+    {
+        // El tope existe para que un correo mal formado no borre el documento.
+        string limpio = Con("Maria")
+            .Redact("¡Hola MARIA!\nSe hizo una transacción en PEDIDOSYA");
+
+        Assert.Contains("PEDIDOSYA", limpio, StringComparison.Ordinal);
+        Assert.Contains("transacción", limpio, StringComparison.Ordinal);
     }
 
     [Fact]
     public void el_nombre_desaparece_sin_importar_las_mayusculas()
     {
-        string limpio = Con("Elwin Zorrilla").Redact("ELWIN ZORRILLA compró algo.");
+        string limpio = Con("Maria Perez").Redact("MARIA PEREZ compró algo.");
 
-        Assert.DoesNotContain("ELWIN", limpio, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("MARIA", limpio, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void las_direcciones_de_correo_se_sustituyen()
     {
-        string limpio = Con().Redact("Enviado a elwin.zorrilla@gmail.com desde el banco.");
+        string limpio = Con().Redact("Enviado a maria.perez@gmail.com desde el banco.");
 
         Assert.DoesNotContain("gmail.com", limpio, StringComparison.Ordinal);
         Assert.Contains("finanzas@ejemplo.do", limpio, StringComparison.Ordinal);
@@ -144,7 +179,7 @@ public sealed class RedactorTests
     {
         // El nombre del comercio no es un dato personal y es lo que el parser
         // extrae. Borrarlo dejaría la muestra sin la mitad de lo que enseña.
-        string limpio = Con("Elwin").Redact("Comercio: SUPERMERCADO NACIONAL");
+        string limpio = Con("Maria").Redact("Comercio: SUPERMERCADO NACIONAL");
 
         Assert.Contains("SUPERMERCADO NACIONAL", limpio, StringComparison.Ordinal);
     }
@@ -169,7 +204,7 @@ public sealed class RedactorTests
     [Fact]
     public void los_terminos_se_leen_de_una_lista_separada_por_comas()
     {
-        RedactionSettings settings = RedactionSettings.Of("Elwin Zorrilla, Juana Pérez ,");
+        RedactionSettings settings = RedactionSettings.Of("Maria Perez, Juana Pérez ,");
 
         Assert.Equal(2, settings.PersonalTerms.Count);
         Assert.Contains("Juana Pérez", settings.PersonalTerms);
