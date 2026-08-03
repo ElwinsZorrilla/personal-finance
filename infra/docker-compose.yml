@@ -23,7 +23,15 @@ services:
       - dataprotection:/keys
     restart: "no"
 
-  api:
+  # El nombre del servicio es `margen-api` y no `api` a propósito.
+  #
+  # Compose registra el nombre del servicio como alias de DNS en **cada** red a
+  # la que se conecta, incluida la compartida del proxy. En esa red ya vive otro
+  # contenedor con el alias `api`, y dos con el mismo alias hacen que el DNS de
+  # Docker reparta entre los dos: el proxy mandaría parte del tráfico de ese otro
+  # sistema a este, de forma intermitente y sin que nada falle a la vista.
+  margen-api:
+    container_name: margen-api
     image: ${REGISTRY}/margen-api:${TAG:-latest}
     restart: unless-stopped
     depends_on:
@@ -69,7 +77,9 @@ services:
   # La PWA: archivos estáticos servidos por nginx. Va en la red del proxy y no
   # en la interna, porque es lo que abre el navegador; y no toca la base de
   # datos, porque no tiene nada que buscar ahí.
-  app:
+  # Mismo motivo que `margen-api`: nada genérico en la red compartida.
+  margen-app:
+    container_name: margen-app
     image: ${REGISTRY}/margen-app:${TAG:-latest}
     restart: unless-stopped
     networks:

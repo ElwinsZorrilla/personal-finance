@@ -12,6 +12,16 @@ app/
 docs/
 infra/
 tests/
+
+# Dos excepciones, para la imagen de la PWA: el bundle ya compilado y la
+# configuración de nginx que lo sirve. Todo lo demás de `app/` e `infra/` sigue
+# fuera —el código fuente de Flutter, las muestras, el `.env`—.
+#
+# La negación va después de la exclusión a propósito: gana la última regla que
+# encaja.
+!app/build/web
+!infra/nginx-pwa.conf
+!infra/nginx-seguridad.inc
 **/.env
 **/.env.*
 **/*.user
