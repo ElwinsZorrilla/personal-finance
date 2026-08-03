@@ -79,11 +79,18 @@
 </head>
 <body>
   <!--
-    Lo tapa Flutter al pintar encima. No lleva barra de progreso: una que no
-    sabe cuánto falta miente, y aquí no se sabe.
+    Lo quita `arranque.js` cuando Flutter pinta su primer fotograma. **No se
+    quita solo**: la primera versión daba por hecho que Flutter pintaría encima,
+    y con `position: fixed` cubriendo el viewport la app podía estar corriendo
+    perfectamente debajo mientras lo único visible era «Cargando…».
+
+    No lleva barra de progreso: una que no sabe cuánto falta miente, y aquí no
+    se sabe.
   -->
   <div id="cargando">Cargando…</div>
 
+  <!-- Antes del bootstrap, para no perderse los errores del arranque. -->
+  <script src="arranque.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
