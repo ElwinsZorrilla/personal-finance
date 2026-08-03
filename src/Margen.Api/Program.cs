@@ -143,6 +143,7 @@ app.MapEmailEndpoints();
 app.MapReconciliationEndpoints();
 app.MapStatementEndpoints();
 app.MapPeriodEndpoints();
+app.MapSetupEndpoints();
 
 // El documento se sirve para poder generarlo y versionarlo, no para publicar
 // una consola interactiva: una interfaz de exploración es superficie expuesta

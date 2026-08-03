@@ -227,3 +227,41 @@ public sealed record RecommendedBudgetView(
     /// cálculo: es un hecho que hay que ver.
     /// </summary>
     bool DoesNotFit);
+
+/// <summary>Qué falta para que la aplicación pueda funcionar.</summary>
+/// <remarks>
+/// Dice **qué** falta en vez de un sí o un no: «no está lista» sin decir por
+/// qué obliga a adivinar.
+/// </remarks>
+public sealed record SetupStatusView(
+    bool IsReady,
+    int Accounts,
+    int Categories,
+    bool HasOpenPeriod,
+
+    /// <summary>
+    /// Correos guardados que todavía no tienen cuenta donde colgarse. No se
+    /// pierden: `--reprocesar` los vuelve a mirar cuando la cuenta exista.
+    /// </summary>
+    int EmailsWaiting,
+
+    IReadOnlyList<string> Missing);
+
+/// <summary>Una cuenta o tarjeta.</summary>
+public sealed record AccountView(
+    Guid Id,
+    string Name,
+    string LastFour,
+    string Kind,
+    long BalanceCents,
+    long? CreditLimitCents);
+
+/// <summary>El período abierto.</summary>
+public sealed record PeriodOpenedView(
+    Guid Id,
+    DateOnly StartDate,
+    DateOnly EndDate,
+    long ExpectedIncomeCents,
+
+    /// <summary>Falso si ya existía uno abierto y se devolvió ese.</summary>
+    bool Created);

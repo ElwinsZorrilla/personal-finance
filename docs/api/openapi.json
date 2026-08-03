@@ -770,10 +770,153 @@
           }
         }
       }
+    },
+    "/setup/status": {
+      "get": {
+        "tags": [
+          "Puesta en marcha"
+        ],
+        "operationId": "GetSetupStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupStatusView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/setup/categories/defaults": {
+      "post": {
+        "tags": [
+          "Puesta en marcha"
+        ],
+        "operationId": "SeedDefaultCategories",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupStatusView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/setup/accounts": {
+      "post": {
+        "tags": [
+          "Puesta en marcha"
+        ],
+        "operationId": "CreateAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/setup/periods": {
+      "post": {
+        "tags": [
+          "Puesta en marcha"
+        ],
+        "operationId": "OpenPeriod",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenPeriodRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodOpenedView"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AccountView": {
+        "required": [
+          "id",
+          "name",
+          "lastFour",
+          "kind",
+          "balanceCents",
+          "creditLimitCents"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "lastFour": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "balanceCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "creditLimitCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
       "AlertView": {
         "required": [
           "id",
@@ -1046,6 +1189,44 @@
               "string"
             ],
             "format": "date"
+          }
+        }
+      },
+      "CreateAccountRequest": {
+        "required": [
+          "name",
+          "lastFour",
+          "kind",
+          "balanceCents",
+          "creditLimitCents"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "lastFour": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "balanceCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "creditLimitCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
           }
         }
       },
@@ -1484,6 +1665,51 @@
           }
         }
       },
+      "OpenPeriodRequest": {
+        "required": [
+          "payDay",
+          "expectedIncomeCents",
+          "safetyFundCents",
+          "committedSavingsCents"
+        ],
+        "type": "object",
+        "properties": {
+          "payDay": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "expectedIncomeCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "safetyFundCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "committedSavingsCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
       "PageOfStatementProfileView": {
         "required": [
           "items",
@@ -1541,6 +1767,41 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "PeriodOpenedView": {
+        "required": [
+          "id",
+          "startDate",
+          "endDate",
+          "expectedIncomeCents",
+          "created"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "expectedIncomeCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "created": {
+            "type": "boolean"
           }
         }
       },
@@ -1773,6 +2034,55 @@
           },
           "reason": {
             "type": "string"
+          }
+        }
+      },
+      "SetupStatusView": {
+        "required": [
+          "isReady",
+          "accounts",
+          "categories",
+          "hasOpenPeriod",
+          "emailsWaiting",
+          "missing"
+        ],
+        "type": "object",
+        "properties": {
+          "isReady": {
+            "type": "boolean"
+          },
+          "accounts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "categories": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasOpenPeriod": {
+            "type": "boolean"
+          },
+          "emailsWaiting": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -2114,6 +2424,9 @@
     },
     {
       "name": "Períodos"
+    },
+    {
+      "name": "Puesta en marcha"
     }
   ]
 }

@@ -91,3 +91,35 @@ public sealed record CreateStatementProfileRequest(
     int? CreditColumn,
     string? Decimals,
     bool InvertSign);
+
+/// <summary>Alta de una cuenta o tarjeta.</summary>
+/// <remarks>
+/// El saldo va en **centavos enteros**, como todo el dinero de este API. Es la
+/// única cifra del sistema que no sale de un correo ni de un cálculo: la pone
+/// una persona, y entra directa en la fórmula del dinero seguro.
+/// </remarks>
+public sealed record CreateAccountRequest(
+    string Name,
+
+    /// <summary>Los cuatro últimos dígitos: es lo único que trae el correo del banco.</summary>
+    string LastFour,
+
+    /// <summary>`Checking`, `Savings`, `Credit` o `Cash`.</summary>
+    string Kind,
+
+    long BalanceCents,
+    long? CreditLimitCents);
+
+/// <summary>
+/// Apertura del período que contiene hoy.
+/// </summary>
+/// <remarks>
+/// No va del 1 al 30: va de un ingreso al siguiente, que es el ciclo real del
+/// dinero de una persona asalariada. Por eso se da el día de cobro y no dos
+/// fechas.
+/// </remarks>
+public sealed record OpenPeriodRequest(
+    int PayDay,
+    long ExpectedIncomeCents,
+    long? SafetyFundCents,
+    long? CommittedSavingsCents);
