@@ -22,7 +22,7 @@ una columna «Se paga en».
 | m19 | CR-005 | El contraste 4.5:1 y el respeto a la animación reducida no se han comprobado en ningún widget | Sigue abierta y ahora es **más comprobable**: al ser PWA (CR-015), un navegador tiene herramientas para medir contraste que un simulador de iOS no tiene | Al desplegar, con la app abierta en el navegador |
 | ~~m20~~ | CR-005 | `intl` sigue como dependencia aunque `core/` ya no la use | — | **Pagada en la Fase 5** (CR-006): fuera de `pubspec.yaml` |
 | ~~m21~~ | CR-006 | La caché no caduca: una lectura de hace un mes se enseña igual que una de hace un minuto | — | **Pagada en la Fase 12** (CR-014): vale 72 horas. El plazo es largo porque la caché solo aparece cuando el servidor no responde, y uno corto la volvería inútil el fin de semana que se cae |
-| m22 | CR-006 | El token no se guarda ni se renueva: `ApiClient.token` se pone a mano y no hay recorrido de alta desde la app | El recorrido necesita el Enclave Seguro, que necesita empaquetado iOS, que depende de ADR-001 | Fase 11, tras responder ADR-001 |
+| m22 | CR-006 | **No hay recorrido de alta desde la app.** `ApiClient.token` es un setter que nadie llama, así que la PWA arranca, pide el panel sin token y muestra «hay que volver a entrar» | **Vencía en la Fase 11 y no se pagó**: esa fase hizo el empaquetado y no esto. Es lo **único** que impide usar la app desplegada. Con ADR-001 resuelto a PWA, el Enclave Seguro deja de aplicar y el equivalente es WebCrypto | **Lo siguiente que se hace.** Diseño decidido abajo |
 | ~~m23~~ | CR-007 | `SampleBankParser` es un parser de un banco que no existe y queda en el árbol | — | **Resuelta en la Fase 7** (CR-008): se queda, y ahora cumple lo que decía su justificación —es la prueba de que el registro elige entre dos parsers por remitente, que con uno solo no se podía comprobar |
 | m24 | CR-007 | El reproceso se invoca por línea de comandos en el worker, sin endpoint | El reprocesador vive en `Margen.Worker` y el API no lo referencia; exponerlo obliga a mover la pieza o duplicarla, y cuesta más que la comodidad que da. Lo usa quien despliega | Cuando haga falta reprocesar sin acceso al servidor |
 | m25 | CR-008 | Faltan tres avisos del Popular que no aparecieron en 209 correos: compra rechazada, devolución y pago de tarjeta. El parser los contempla, pero contra un formato supuesto | Es el mismo error que bloqueó la fase entera: escribir contra un formato que nadie ha visto. Inventarlos daría una prueba que pasa y un parser que falla | Cuando lleguen al buzón: capturar, corregir y `--reprocesar` |
@@ -39,3 +39,40 @@ una columna «Se paga en».
 | m34 | CR-014 | El despliegue no se ha ejecutado: el compose es válido y las imágenes se construyen, pero nadie ha levantado el stack contra un servidor de verdad | Toca producción y credenciales, que es condición de parada del `LOOP.md`. El runbook está escrito paso a paso en `docs/despliegue.md` | **Lo hace el humano.** Nada de lo que sigue —m16, m27, m30— se puede pagar antes |
 | m35 | CR-015 | La PWA no se ha abierto en un navegador de verdad: compila, pasa las pruebas y nadie la ha visto arrancar | Es la tercera vez que Flutter compila algo que no arranca —las dos anteriores, en la Fase 5—. Aquí no hay forma de comprobarlo sin un navegador delante | **Al desplegar.** Es el primer paso después de levantar el stack |
 | m36 | CR-015 | Los avisos push no están implementados: la PWA los soporta desde iOS 16.4 y hace falta service worker propio, permiso y suscripción | El requisito §20 era «avisar solo cuando algo requiere atención», y lo que decide qué es digno de aviso son las alertas de la Fase 8, que ya existen. Falta el transporte, no el criterio | Después del despliegue, con la app instalada en la pantalla de inicio |
+---
+
+## m22 — el alta desde la PWA, decisiones ya tomadas
+
+Se escriben aquí para que retomarlo empiece por construir y no por decidir.
+
+**La clave.** ECDSA P-256 con WebCrypto, generada con `extractable: false`: ni
+el propio código puede leer la privada. Es lo más cercano al Enclave Seguro que
+ofrece un navegador, y la diferencia con `true` es la que hay entre «no la
+exporto» y «no se puede». P-256 y no otra curva porque es la que el servidor
+valida desde la Fase 2.
+
+**Dónde vive.** IndexedDB, guardando el `CryptoKey` opaco y no su material. No
+`localStorage`, que solo admite texto y obligaría a exportar la clave —es decir,
+a hacerla extraíble—.
+
+**El recorrido**, que ya existe entero en el servidor:
+
+1. `POST /auth/devices` con el nombre y la pública en SPKI base64, y el código
+   de alta en la cabecera `X-Margen-Enrollment` → devuelve el `deviceId`.
+2. `POST /auth/challenges` con el `deviceId` → devuelve un `nonce` en base64.
+3. Firmar **los bytes** del nonce —`base64.decode`, no su texto— con SHA-256.
+   El servidor verifica contra los bytes que generó; firmar la representación en
+   texto da una firma que no valida y un error que no dice por qué.
+4. `POST /auth/tokens` con `deviceId`, `nonce` y firma → devuelve el token.
+
+**Qué se guarda.** El token en el almacén local, y se vuelve a pedir con la
+misma clave cuando caduque: el paso 1 solo se hace una vez, los pasos 2 a 4 cada
+vez que haga falta. Por eso un 401 no debe mandar al usuario a pedir otro código
+de alta.
+
+**Importación condicional**, como el almacén y el transporte: `dart:js_interop`
+no existe fuera de web, y el día que haya app nativa la otra rama usará el
+Enclave Seguro sin tocar nada de esto.
+
+**Pantalla.** Una sola, con un campo para el código de alta y un botón. Aparece
+cuando no hay token y desaparece cuando lo hay.
