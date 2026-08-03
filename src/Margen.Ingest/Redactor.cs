@@ -33,17 +33,30 @@ public sealed partial class Redactor(RedactionSettings settings)
         // de correo y sobrevive a la redacción.
         string result = body.Replace("­", string.Empty, StringComparison.Ordinal);
 
-        // Los términos que da el usuario van primero: su nombre puede aparecer
-        // dentro de una dirección de correo o de un comercio, y sustituirlo
-        // después dejaría restos.
-        foreach (string term in _settings.PersonalTerms)
-        {
-            if (string.IsNullOrWhiteSpace(term)) continue;
+        // El nombre que sigue a una etiqueta de persona, sea de quien sea.
+        //
+        // Va primero y es la regla que más cubre. Los términos que da el
+        // usuario solo conocen su propio nombre, y una notificación de
+        // transferencia lleva el del beneficiario: **el dato personal de un
+        // tercero, que nadie puede enumerar de antemano.** Lo que sí se sabe es
+        // dónde lo pone el banco.
+        result = NameAfterLabelPattern().Replace(
+            result,
+            m => m.Groups["etiqueta"].Value + "NOMBRE APELLIDO");
 
+        // Los términos que da el usuario, palabra por palabra.
+        //
+        // La primera versión buscaba la frase entera y falló con las muestras
+        // reales por dos caminos: el banco escribe «SR ELWIN ZORRILLA ESPINAL»
+        // —con un apellido de más— y también «ZORRILLA ESPINAL E», en otro
+        // orden. Ninguna de las dos contiene la frase que se le dio, así que
+        // ninguna se sustituyó.
+        foreach (string word in _settings.Words)
+        {
             result = Regex.Replace(
                 result,
-                Regex.Escape(term),
-                "NOMBRE APELLIDO",
+                @"\b" + Regex.Escape(word) + @"\w*",
+                "NOMBRE",
                 RegexOptions.IgnoreCase,
                 TimeSpan.FromSeconds(2));
         }
@@ -169,6 +182,26 @@ public sealed partial class Redactor(RedactionSettings settings)
     /// </summary>
     [GeneratedRegex(@"\d{8,}", RegexOptions.None, matchTimeoutMilliseconds: 2000)]
     private static partial Regex LongDigitsPattern();
+
+    /// <summary>
+    /// El nombre de una persona, reconocido por la etiqueta que lo precede.
+    /// </summary>
+    /// <remarks>
+    /// Es la única regla que puede quitar el nombre de **otra persona**. Una
+    /// notificación de transferencia lleva el del beneficiario, y no hay lista
+    /// de términos que lo prevea: quien ejecuta la captura conoce su propio
+    /// nombre, no el de a quién le transfirió dinero el año pasado.
+    ///
+    /// Se apoya en que estos correos escriben los nombres en mayúsculas y en
+    /// que el nombre termina donde empieza una etiqueta HTML, una entidad o el
+    /// fin de línea. El tope de sesenta caracteres es para que un correo mal
+    /// formado no se coma el documento entero.
+    /// </remarks>
+    [GeneratedRegex(
+        @"(?<etiqueta>(?:Estimad[oa]\s*\(a\)|Estimad[oa]|Beneficiari[oa]|Titular|Destinatari[oa]|Ordenante|Remitente\s+de\s+fondos|A\s+nombre\s+de|Cliente)\s*:?\s*(?:&nbsp;|\s)*)(?<nombre>\p{Lu}[\p{Lu}\p{M}.\s]{2,60}?)(?=\s*(?:<|&nbsp;|\r|\n|,|$))",
+        RegexOptions.IgnoreCase,
+        matchTimeoutMilliseconds: 2000)]
+    private static partial Regex NameAfterLabelPattern();
 }
 
 /// <summary>
@@ -177,6 +210,29 @@ public sealed partial class Redactor(RedactionSettings settings)
 /// </summary>
 public sealed record RedactionSettings(IReadOnlyList<string> PersonalTerms)
 {
+    /// <summary>
+    /// Cada palabra de cada término, por separado y sin repetir.
+    /// </summary>
+    /// <remarks>
+    /// Buscar la frase entera no sirve: el banco escribe el nombre con un
+    /// apellido de más, en otro orden o abreviado, y ninguna de esas formas
+    /// contiene la frase que se le dio. Palabra por palabra sí las cubre las
+    /// tres.
+    ///
+    /// El mínimo de cuatro letras evita destrozar el texto con partículas
+    /// —«de», «la», «del»— que aparecen en cualquier frase y no identifican a
+    /// nadie.
+    /// </remarks>
+    public IReadOnlyList<string> Words { get; } =
+    [
+        .. PersonalTerms
+            .SelectMany(t => t.Split(
+                [' ', '\t', '.'],
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Where(w => w.Length >= 4)
+            .Distinct(StringComparer.OrdinalIgnoreCase),
+    ];
+
     public static RedactionSettings Of(string? commaSeparated) =>
         new([.. (commaSeparated ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]);
