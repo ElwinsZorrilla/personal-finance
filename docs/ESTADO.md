@@ -1,37 +1,75 @@
 # Estado
 
-Fase: 9 - Efectivo desde el iPhone
-Rama: fase/9-efectivo-iphone
+Fase: 10 - Conciliación
+Rama: fase/10-conciliacion
 Estado: **cerrada**
 Paso: 7 de 7 (NEXT)
 Vuelta: 1 de 3
 Compuerta 1: verde en las dos
-Revisión: CR-010 aprobada
+Revisión: CR-011 aprobada
 Veredicto: **APROBADA**
 Bloqueo: -
 
-## El Atajo
+## Varios bancos
 
-> «Oye Siri, gasté 450 pesos en almuerzo»
+El buzón tiene **más de un banco**. El registro de parsers, la lista blanca de
+remitentes y el redactor ya eran multibanco desde la Fase 6; la **captura de
+muestras** no, y se arregló en esta fase:
 
-Los pasos exactos están en [`docs/atajo.md`](atajo.md), sin un solo secreto
-dentro: el dominio y el token se ponen al montarlo.
+- La cuota de muestras es por **banco y tipo**. Era global, así que los seis
+  primeros consumos del primer banco la agotaban y de los demás no se capturaba
+  ninguno.
+- Las muestras llevan el banco en el nombre: `popularenlinea-compra-aprobada.txt`.
+  Sin eso, con tres bancos ninguna muestra sirve para escribir ningún parser.
 
-Dos rutas al mismo sitio, las dos con el token de alcance `cash:create`:
+**Para añadir un banco**: poner su remitente en `IMAP_ALLOWED_SENDERS`, correr
+la captura, leer las muestras y escribir su `IEmailParser`. El registro elige
+por remitente, así que el banco nuevo no toca a los que ya funcionan.
 
-| Ruta | Cuerpo | Quién la usa |
+| Banco | Parser | Muestras |
 |---|---|---|
-| `POST /transactions/cash` | monto en centavos enteros | La app, que ya tiene teclado numérico |
-| `POST /transactions/cash/phrase` | la frase | El Atajo de iOS |
+| Banco Popular | Escrito y aprobado (CR-008) | 16, faltan 3 tipos |
+| Los demás | **Pendiente** | **Pendientes de capturar** |
 
-**El monto lo saca una expresión regular, nunca un modelo.** El día y la moneda
-también. Lo que sí puede sugerir un modelo es la categoría, por la cascada de la
-Fase 8, y allí tampoco decide solo.
+## La conciliación
 
-Lo que no se entiende no crea nada y no toca el saldo: sin monto, sin
-descripción, en moneda extranjera, en cero o por encima del tope. Los numerales
-en palabras se rechazan a propósito —el dictado de iOS ya escribe dígitos, y
-media implementación enseñaría que funciona para fallar un día cualquiera—.
+Un **perfil por banco** dice qué columna del CSV es cuál. Se escribe una vez, se
+ve una vista previa y a partir de ahí importar el estado de cuenta del mes es
+subir un archivo.
+
+El mapeo de columnas es la respuesta a no conocer el formato de antemano, no un
+sustituto de conocerlo. Lo explícito es explícito a propósito:
+
+| Qué | Por qué no se adivina |
+|---|---|
+| Formato de fecha | `01/02/2026` es el 1 de febrero o el 2 de enero según el banco |
+| Estilo decimal | `1.234,56` leído mal da 1,23 |
+| Signo | Hay bancos que escriben los cargos en positivo |
+
+Se detecta solo el separador —por consistencia de columnas, no por frecuencia—
+y la codificación —UTF-8 o Latin-1—.
+
+| Estado | Qué se hace al importar |
+|---|---|
+| Conciliado | El movimiento pasa a `Reconciled` |
+| **Ausente** | **Se crea**, en revisión y sin categoría |
+| Pendiente | Nada; sale en el informe |
+| Discrepante | Nada: hay dos cifras y elegirlas sin preguntar no se hace |
+| Duplicado | Nada: dos candidatos iguales no se desempatan al azar |
+
+Lo ausente es el motivo entero de conciliar: el efectivo que nadie registró, los
+correos que no llegaron y **los bancos que todavía no tienen parser** aparecen
+ahí.
+
+## El cierre de período
+
+`POST /periods/{id}/close` cierra y devuelve qué asignar en el siguiente, sacado
+de **lo que se gastó de verdad**: un presupuesto que se copia a sí mismo mes tras
+mes repite el error del primer mes para siempre.
+
+Si no cabe en el ingreso se recorta por prioridad, y lo Esencial y lo Importante
+no se tocan. Si aun así no cabe, **se dice**: no es un fallo del cálculo, es que
+los compromisos no caben en el sueldo.
 
 ## Lo hecho
 
@@ -46,8 +84,9 @@ media implementación enseñaría que funciona para fallar un día cualquiera—
 | 7 · Parser del Banco Popular | Cerrada | CR-008 | 105 en `Ingest` |
 | 8 · Clasificación y anomalías | Cerrada | CR-009 | 136 en `Classify` + 17 de integración |
 | 9 · Efectivo desde el iPhone | Cerrada | CR-010 | 41 entre `Ingest` e integración |
+| 10 · Conciliación | Cerrada | CR-011 | 56 puras + 15 de integración |
 
-**692 pruebas**: 601 en .NET, 91 en Flutter. Las dos compuertas 1 en verde.
+**771 pruebas**: 680 en .NET, 91 en Flutter. Las dos compuertas 1 en verde.
 Cobertura de `Margen.Classify`: 99,8 % de líneas, 98,3 % de ramas.
 
 ## Lo que necesito del humano
@@ -58,30 +97,30 @@ Cobertura de `Margen.Classify`: 99,8 % de líneas, 98,3 % de ramas.
    bajarlas, no qué versión.
 4. **Relanzar la revisión adversarial del motor** (m15) antes de fusionar la
    Fase 3: CR-003 la respalda un solo lector.
-4. **El merge a `main`.** Nueve ramas publicadas, ninguna fusionada.
-5. **Guardar los avisos que faltan** si te llegan: una compra rechazada, una
-   devolución y un pago de tarjeta. Con `--capturar-muestras`, que abre el buzón
-   en solo lectura y no borra nada.
+4. **El merge a `main`.** Diez ramas publicadas, ninguna fusionada.
+5. **Capturar los otros bancos.** Pon sus remitentes en `IMAP_ALLOWED_SENDERS`
+   —separados por comas— y corre `--capturar-muestras`. Sin sus muestras no se
+   les puede escribir parser, y sus movimientos solo entrarán por la
+   conciliación del estado de cuenta.
+6. **Guardar los avisos que faltan del Popular** si te llegan: compra
+   rechazada, devolución y pago de tarjeta.
 
 ## Lo que sigue
 
-**Fase 10 - conciliación.** Importar el estado de cuenta en CSV, cuadrarlo
-contra lo registrado y cerrar el período generando el presupuesto recomendado
-del siguiente. Está **a medio bloquear**: la importación necesita saber cómo es
-el CSV que exporta el Banco Popular, y escribir el mapeo contra un formato
-supuesto es lo que bloqueó la Fase 7.
+**Fase 12 - endurecimiento y despliegue.** Es la última que no depende de nadie.
 
-El cierre de período y los estados de conciliación sí se pueden construir sin
-eso.
+**Fase 11 - empaquetado iOS.** Depende de ADR-001, sin responder.
 
-Después: 12 (endurecimiento y despliegue). La 11 depende de ADR-001.
+Y en paralelo, cuando haya muestras: **un parser por cada banco nuevo**. No es
+una fase; es trabajo que se hace cada vez que aparece un banco, y el andamiaje
+ya está.
 
 ## Notas de entorno
 
 - Remoto `origin` en `github.com/ElwinsZorrilla/personal-finance`. Ramas:
   `main`, `fase/2-base-api`, `fase/3-motor-presupuesto`, `fase/4-endpoints`,
   `fase/5-datos-flutter`, `fase/6-ingesta-correo`, `fase/7-parser-banco`,
-  `fase/8-clasificacion`, `fase/9-efectivo-iphone`.
+  `fase/8-clasificacion`, `fase/9-efectivo-iphone`, `fase/10-conciliacion`.
 - .NET 10.0.204, Docker 29.5.3 y Flutter 3.44.5. Flutter está en
   `C:\src\flutter` pero **no en el PATH**: hay que añadirlo a mano.
 - Regenerar el contrato tras cambiar la superficie del API:

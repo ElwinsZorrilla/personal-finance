@@ -126,4 +126,26 @@ Una línea por iteración cerrada.
             hay tasa de cambio y elegir una sería inventarse una cifra
             docs/atajo.md sin un solo secreto dentro, ni de ejemplo
             deuda abierta: m29 (fase 12)
+
+2026-08-03 · FASE-10 · conciliación, y el caso de varios bancos
+            CR-011 aprobada tras 1 vuelta · 1 Blocker y 3 Majors corregidos
+            las dos compuertas 1 en verde: 771 pruebas (680 .NET, 91 Flutter)
+            el usuario dijo a mitad de fase que tiene MÁS DE UN BANCO
+            B1: la cuota de muestras era global · los seis primeros consumos del
+            primer banco la agotaban y de los demás no se capturaba ninguno, y
+            el recuento decía «compra-aprobada 6» como si estuviera cubierto
+            M1: las muestras no decían de qué banco eran · con tres bancos eso
+            hace inútil cualquier muestra, porque cada formato es distinto
+            los dos estaban en la Fase 7 y pasaron dos revisiones sin verse
+            el mapeo de columnas ES la respuesta a no conocer el formato, no un
+            sustituto de conocerlo: un perfil por banco, escrito una vez
+            explícitos a propósito: formato de fecha, estilo decimal y signo
+            se detectan solos: separador —por consistencia, no por frecuencia—
+            y codificación —UTF-8 o Latin-1—
+            lo ausente se crea, lo discrepante y lo duplicado NO se tocan
+            M2: sumar Money dentro de un GroupBy no lo traduce EF y revienta en
+            ejecución · lo encontró la prueba de integración, no el compilador
+            M3: una línea aproximada se quedaba con el movimiento de una exacta
+            el cierre de período recomienda desde lo GASTADO, no lo asignado
+            deuda abierta: m30 (fase 12), m31 (fase 11)
 ```

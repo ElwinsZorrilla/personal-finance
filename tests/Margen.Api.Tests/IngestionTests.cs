@@ -403,6 +403,38 @@ public sealed class SampleTypeTests
         Assert.Equal(esperado, Margen.Worker.Ingestion.SampleCapture.TypeOf(asunto));
     }
 
+    [Theory]
+    [InlineData("notificaciones@popularenlinea.com", "popularenlinea")]
+    [InlineData("alertas@bhd.com.do", "bhd")]
+    [InlineData("no-reply@banreservas.com", "banreservas")]
+    [InlineData("bancamerica.com.do", "bancamerica")]
+    [InlineData("scotiabank.com.do", "scotiabank")]
+    public void el_remitente_da_el_nombre_del_banco_en_la_muestra(string remitente, string esperado)
+    {
+        // Sin esto, `compra-aprobada-2.txt` no dice de qué banco es, y con
+        // varios bancos en el buzón eso hace imposible escribir el parser de
+        // ninguno: cada uno tiene su formato y la muestra no dice a cuál va.
+        Assert.Equal(esperado, Margen.Worker.Ingestion.SampleCapture.SlugOf(remitente));
+    }
+
+    [Theory]
+    [InlineData("../../../etc/passwd")]
+    [InlineData("banco/../otro")]
+    [InlineData("@@@")]
+    public void un_remitente_raro_no_escribe_fuera_de_la_carpeta(string remitente)
+    {
+        // El remitente viene de una lista blanca que pone el usuario, no de un
+        // correo. Aun así, lo que acaba en un nombre de archivo se limpia: la
+        // lista se escribe a mano en un `.env` y una errata no puede terminar
+        // en una escritura en otro sitio.
+        string slug = Margen.Worker.Ingestion.SampleCapture.SlugOf(remitente);
+
+        Assert.DoesNotContain("/", slug, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\", slug, StringComparison.Ordinal);
+        Assert.DoesNotContain("..", slug, StringComparison.Ordinal);
+        Assert.NotEmpty(slug);
+    }
+
     [Fact]
     public void un_asunto_desconocido_sigue_siendo_una_muestra_util()
     {

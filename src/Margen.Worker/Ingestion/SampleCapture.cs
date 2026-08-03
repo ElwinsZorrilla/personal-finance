@@ -163,11 +163,20 @@ public static class SampleCapture
 
             // Del más reciente hacia atrás: las plantillas cambian y la que
             // importa es la de ahora.
+            string banco = SlugOf(sender);
+
             foreach (IMessageSummary sobre in sobres.Reverse())
             {
                 string tipo = TypeOf(sobre.Envelope?.Subject);
 
-                porTipo.TryGetValue(tipo, out int cuantos);
+                // La cuota es **por banco y tipo**, no por tipo a secas. Con la
+                // cuota global, los seis primeros consumos del primer banco la
+                // agotaban y de los demás bancos no se capturaba ni uno: el
+                // recuento final decía «compra-aprobada 6» y parecía que estaba
+                // cubierto.
+                string cuota = $"{banco}/{tipo}";
+
+                porTipo.TryGetValue(cuota, out int cuantos);
                 if (cuantos >= PerType) continue;
 
                 MimeMessage message = await client.Inbox.GetMessageAsync(sobre.UniqueId)
@@ -181,7 +190,7 @@ public static class SampleCapture
                 string limpio = redactor.Redact(cuerpo);
                 string asunto = redactor.Redact(message.Subject ?? string.Empty);
 
-                string nombre = FileNameFor(tipo, escritos);
+                string nombre = FileNameFor(banco, tipo, escritos);
                 string ruta = Path.Combine(destino, nombre);
 
                 await File.WriteAllTextAsync(
@@ -190,15 +199,15 @@ public static class SampleCapture
                     new UTF8Encoding(false)).ConfigureAwait(false);
 
                 escritos.Add(nombre);
-                porTipo[tipo] = cuantos + 1;
+                porTipo[cuota] = cuantos + 1;
             }
         }
 
         Console.WriteLine();
-        Console.WriteLine("Por tipo:");
-        foreach ((string tipo, int cuantos) in porTipo.OrderBy(p => p.Key, StringComparer.Ordinal))
+        Console.WriteLine("Por banco y tipo:");
+        foreach ((string cuota, int cuantos) in porTipo.OrderBy(p => p.Key, StringComparer.Ordinal))
         {
-            Console.WriteLine($"  {tipo,-20} {cuantos}");
+            Console.WriteLine($"  {cuota,-40} {cuantos}");
         }
 
         await client.DisconnectAsync(true).ConfigureAwait(false);
@@ -260,6 +269,38 @@ public static class SampleCapture
     }
 
     /// <summary>
+    /// Un nombre corto y seguro para un archivo, sacado del remitente.
+    /// </summary>
+    /// <remarks>
+    /// `notificaciones@popularenlinea.com` da `popularenlinea`, y `bhd.com.do`
+    /// da `bhd`. Se queda con la primera etiqueta del dominio porque es la que
+    /// identifica al banco; el `.com.do` lo comparten todos.
+    /// </remarks>
+    public static string SlugOf(string sender)
+    {
+        ArgumentNullException.ThrowIfNull(sender);
+
+        string dominio = sender.Contains('@', StringComparison.Ordinal)
+            ? sender[(sender.IndexOf('@', StringComparison.Ordinal) + 1)..]
+            : sender;
+
+        string etiqueta = dominio.Split('.', StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(string.Empty);
+
+        var builder = new StringBuilder(etiqueta.Length);
+        foreach (char c in etiqueta.ToLowerInvariant())
+        {
+            // Solo lo que es seguro en un nombre de archivo en los tres sistemas
+            // operativos. Un remitente raro no puede hacer que se escriba fuera
+            // de la carpeta de muestras.
+            if (char.IsAsciiLetterOrDigit(c)) builder.Append(c);
+            else if (c is '-' && builder.Length > 0) builder.Append(c);
+        }
+
+        return builder.Length > 0 ? builder.ToString() : "banco";
+    }
+
+    /// <summary>
     /// El tipo de aviso, deducido del asunto.
     /// </summary>
     /// <remarks>
@@ -307,15 +348,23 @@ public static class SampleCapture
         };
     }
 
-    private static string FileNameFor(string tipo, List<string> yaEscritos)
+    /// <summary>
+    /// El nombre del archivo lleva el banco delante.
+    /// </summary>
+    /// <remarks>
+    /// Sin él, `compra-aprobada-2.txt` no dice de qué banco es, y con varios
+    /// bancos en el buzón eso hace imposible escribir el parser de ninguno: el
+    /// formato de cada uno es distinto y la muestra no dice a cuál pertenece.
+    /// </remarks>
+    private static string FileNameFor(string banco, string tipo, List<string> yaEscritos)
     {
         int n = 1;
-        string nombre = $"{tipo}.txt";
+        string nombre = $"{banco}-{tipo}.txt";
 
         while (yaEscritos.Contains(nombre))
         {
             n++;
-            nombre = $"{tipo}-{n}.txt";
+            nombre = $"{banco}-{tipo}-{n}.txt";
         }
 
         return nombre;

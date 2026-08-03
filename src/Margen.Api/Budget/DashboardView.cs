@@ -137,3 +137,93 @@ public sealed record DashboardView(
     IReadOnlyList<CommitmentView> Commitments,
     IReadOnlyList<AlertView> Attention,
     IReadOnlyList<TransactionView> Recent);
+
+/// <summary>Un perfil de lectura de estado de cuenta.</summary>
+public sealed record StatementProfileView(
+    Guid Id,
+    string Name,
+    Guid AccountId,
+    string? Delimiter,
+    int SkipRows,
+    int DateColumn,
+    string DateFormat,
+    int DescriptionColumn,
+    int? AmountColumn,
+    int? DebitColumn,
+    int? CreditColumn,
+    string Decimals,
+    bool InvertSign);
+
+/// <summary>Una línea del estado de cuenta y en qué situación está.</summary>
+public sealed record StatementLineView(
+    int LineNumber,
+    DateOnly Date,
+    string Description,
+    long AmountCents,
+
+    /// <summary>`Inflow` u `Outflow`.</summary>
+    string Direction,
+
+    /// <summary>`Matched`, `Missing`, `Discrepant`, `Duplicate`, `Pending` o `Ignored`.</summary>
+    string State,
+
+    Guid? TransactionId,
+
+    /// <summary>Cuánto se diferencian, cuando son discrepantes.</summary>
+    long DifferenceCents);
+
+/// <summary>Una fila que no se pudo leer, y por qué.</summary>
+public sealed record RejectedLineView(int LineNumber, string Raw, string Reason);
+
+/// <summary>
+/// Lo que se vería al importar, sin haber importado nada.
+/// </summary>
+/// <remarks>
+/// Las filas rechazadas viajan enteras y con su motivo. Un importador que se
+/// come en silencio lo que no entiende deja un estado de cuenta que parece
+/// cuadrado y no lo está.
+/// </remarks>
+public sealed record StatementPreviewView(
+    string Delimiter,
+    IReadOnlyList<StatementLineView> Lines,
+    IReadOnlyList<RejectedLineView> Rejected,
+    int PendingCount);
+
+/// <summary>Qué hizo una importación.</summary>
+public sealed record ImportReportView(
+    int Reconciled,
+    int Created,
+    int Discrepant,
+    int Duplicate,
+    int Pending,
+    int Rejected);
+
+/// <summary>Cuánto asignar a una categoría en el período que viene.</summary>
+public sealed record RecommendationView(
+    Guid CategoryId,
+    string CategoryName,
+    long RecommendedCents,
+
+    /// <summary>De qué salió la cifra, en castellano.</summary>
+    string Basis);
+
+/// <summary>
+/// El presupuesto recomendado para el período que viene.
+/// </summary>
+/// <remarks>
+/// Sale de lo que se gastó de verdad, no de lo que se asignó. Un presupuesto
+/// que se copia a sí mismo mes tras mes repite el error del primer mes para
+/// siempre.
+/// </remarks>
+public sealed record RecommendedBudgetView(
+    IReadOnlyList<RecommendationView> Categories,
+    long TotalCents,
+
+    /// <summary>Lo que sobra del ingreso. **Negativo si no cabe.**</summary>
+    long UnallocatedCents,
+
+    /// <summary>
+    /// Los compromisos no caben en el ingreso esperado. No es un fallo del
+    /// cálculo: es un hecho que hay que ver.
+    /// </summary>
+    bool DoesNotFit);

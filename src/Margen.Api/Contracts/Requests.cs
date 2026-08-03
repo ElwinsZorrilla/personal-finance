@@ -69,3 +69,25 @@ public sealed record RedistributeRequest(
     long AmountCents);
 
 public sealed record ResolveAlertRequest(string? Note);
+
+/// <summary>
+/// Cómo se lee el CSV de un banco.
+/// </summary>
+/// <remarks>
+/// Las columnas van por índice desde cero. Es lo que el humano ve al abrir su
+/// archivo, y pedirle el nombre de la cabecera fallaría con los bancos que no
+/// la traen o que la escriben distinta cada mes.
+/// </remarks>
+public sealed record CreateStatementProfileRequest(
+    string Name,
+    Guid AccountId,
+    string? Delimiter,
+    int SkipRows,
+    int DateColumn,
+    string DateFormat,
+    int DescriptionColumn,
+    int? AmountColumn,
+    int? DebitColumn,
+    int? CreditColumn,
+    string? Decimals,
+    bool InvertSign);

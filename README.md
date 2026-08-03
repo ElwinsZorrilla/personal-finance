@@ -113,6 +113,6 @@ Y se lee `git diff --cached` buscando secretos.
 | 7 | Parser del Banco Popular | Cerrada (CR-008) |
 | 8 | Clasificación y anomalías | Cerrada (CR-009) |
 | 9 | Efectivo desde el iPhone | Cerrada (CR-010) |
-| 10 | Conciliación | |
+| 10 | Conciliación | Cerrada (CR-011) |
 | 11 | Empaquetado iOS | Depende de ADR-001 |
 | 12 | Endurecimiento y despliegue | |

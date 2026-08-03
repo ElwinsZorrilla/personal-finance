@@ -5,6 +5,7 @@ using Margen.Api.Endpoints;
 using Margen.Api.Health;
 using Margen.Infrastructure;
 using Margen.Infrastructure.Classification;
+using Margen.Infrastructure.Statements;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -46,6 +47,7 @@ builder.Services.AddScoped<BudgetAssembler>();
 builder.Services.AddScoped<RuleWriter>();
 builder.Services.AddScoped<TransactionClassifier>();
 builder.Services.AddScoped<AnomalyScanner>();
+builder.Services.AddScoped<StatementService>();
 
 // El único camino de entrada es Nginx Proxy Manager. Sin procesar las cabeceras
 // reenviadas, la dirección de origen de toda petición sería la del proxy y el
@@ -130,6 +132,8 @@ app.MapNotificationEndpoints();
 app.MapRuleEndpoints();
 app.MapEmailEndpoints();
 app.MapReconciliationEndpoints();
+app.MapStatementEndpoints();
+app.MapPeriodEndpoints();
 
 // El documento se sirve para poder generarlo y versionarlo, no para publicar
 // una consola interactiva: una interfaz de exploración es superficie expuesta

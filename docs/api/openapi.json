@@ -571,6 +571,205 @@
           }
         }
       }
+    },
+    "/statements/profiles": {
+      "get": {
+        "tags": [
+          "Conciliación"
+        ],
+        "operationId": "ListStatementProfiles",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfStatementProfileView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Conciliación"
+        ],
+        "operationId": "CreateStatementProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStatementProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementProfileView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/statements/profiles/{id}": {
+      "delete": {
+        "tags": [
+          "Conciliación"
+        ],
+        "operationId": "DeleteStatementProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/statements/{profileId}/preview": {
+      "post": {
+        "tags": [
+          "Conciliación"
+        ],
+        "operationId": "PreviewStatement",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementPreviewView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/statements/{profileId}/import": {
+      "post": {
+        "tags": [
+          "Conciliación"
+        ],
+        "operationId": "ImportStatement",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReportView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/periods/recommendation": {
+      "get": {
+        "tags": [
+          "Períodos"
+        ],
+        "operationId": "GetPeriodRecommendation",
+        "parameters": [
+          {
+            "name": "expectedIncomeCents",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendedBudgetView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/periods/{id}/close": {
+      "post": {
+        "tags": [
+          "Períodos"
+        ],
+        "operationId": "ClosePeriod",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendedBudgetView"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -933,6 +1132,101 @@
           }
         }
       },
+      "CreateStatementProfileRequest": {
+        "required": [
+          "name",
+          "accountId",
+          "delimiter",
+          "skipRows",
+          "dateColumn",
+          "dateFormat",
+          "descriptionColumn",
+          "amountColumn",
+          "debitColumn",
+          "creditColumn",
+          "decimals",
+          "invertSign"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "delimiter": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "skipRows": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dateColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dateFormat": {
+            "type": "string"
+          },
+          "descriptionColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "amountColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "debitColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "creditColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "decimals": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "invertSign": {
+            "type": "boolean"
+          }
+        }
+      },
       "DashboardView": {
         "required": [
           "period",
@@ -1105,6 +1399,67 @@
           }
         }
       },
+      "ImportReportView": {
+        "required": [
+          "reconciled",
+          "created",
+          "discrepant",
+          "duplicate",
+          "pending",
+          "rejected"
+        ],
+        "type": "object",
+        "properties": {
+          "reconciled": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "created": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "discrepant": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "duplicate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "pending": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rejected": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "MoneyValue": {
         "required": [
           "cents",
@@ -1126,6 +1481,36 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "PageOfStatementProfileView": {
+        "required": [
+          "items",
+          "nextCursor",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatementProfileView"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "count": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -1241,6 +1626,71 @@
           }
         }
       },
+      "RecommendationView": {
+        "required": [
+          "categoryId",
+          "categoryName",
+          "recommendedCents",
+          "basis"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "recommendedCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "basis": {
+            "type": "string"
+          }
+        }
+      },
+      "RecommendedBudgetView": {
+        "required": [
+          "categories",
+          "totalCents",
+          "unallocatedCents",
+          "doesNotFit"
+        ],
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecommendationView"
+            }
+          },
+          "totalCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "unallocatedCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "doesNotFit": {
+            "type": "boolean"
+          }
+        }
+      },
       "RedeemRequest": {
         "required": [
           "deviceId",
@@ -1302,6 +1752,30 @@
           }
         }
       },
+      "RejectedLineView": {
+        "required": [
+          "lineNumber",
+          "raw",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "lineNumber": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "raw": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "ShortcutTokenRequest": {
         "required": [
           "label"
@@ -1310,6 +1784,196 @@
         "properties": {
           "label": {
             "type": "string"
+          }
+        }
+      },
+      "StatementLineView": {
+        "required": [
+          "lineNumber",
+          "date",
+          "description",
+          "amountCents",
+          "direction",
+          "state",
+          "transactionId",
+          "differenceCents"
+        ],
+        "type": "object",
+        "properties": {
+          "lineNumber": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": "string"
+          },
+          "amountCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "transactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "differenceCents": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "StatementPreviewView": {
+        "required": [
+          "delimiter",
+          "lines",
+          "rejected",
+          "pendingCount"
+        ],
+        "type": "object",
+        "properties": {
+          "delimiter": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatementLineView"
+            }
+          },
+          "rejected": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RejectedLineView"
+            }
+          },
+          "pendingCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "StatementProfileView": {
+        "required": [
+          "id",
+          "name",
+          "accountId",
+          "delimiter",
+          "skipRows",
+          "dateColumn",
+          "dateFormat",
+          "descriptionColumn",
+          "amountColumn",
+          "debitColumn",
+          "creditColumn",
+          "decimals",
+          "invertSign"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "delimiter": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "skipRows": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dateColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dateFormat": {
+            "type": "string"
+          },
+          "descriptionColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "amountColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "debitColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "creditColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "decimals": {
+            "type": "string"
+          },
+          "invertSign": {
+            "type": "boolean"
           }
         }
       },
@@ -1447,6 +2111,9 @@
     },
     {
       "name": "Correos entrantes"
+    },
+    {
+      "name": "Períodos"
     }
   ]
 }

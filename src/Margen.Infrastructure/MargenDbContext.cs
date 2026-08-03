@@ -31,6 +31,9 @@ public class MargenDbContext(DbContextOptions<MargenDbContext> options) : DbCont
 
     public DbSet<AccessToken> AccessTokens => Set<AccessToken>();
 
+    /// <summary>Cómo se lee el CSV de cada banco. Uno por banco.</summary>
+    public DbSet<StatementProfile> StatementProfiles => Set<StatementProfile>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);

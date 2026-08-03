@@ -17,6 +17,10 @@
          y no en el API porque el worker clasifica lo que entra por correo y el
          API clasifica lo que entra a mano: dos llamadores, una implementación. -->
     <ProjectReference Include="../Margen.Classify/Margen.Classify.csproj" />
+
+    <!-- Por el lector de estados de cuenta y el emparejador de la conciliación:
+         lógica pura de entrada de datos, como los parsers de correo. -->
+    <ProjectReference Include="../Margen.Ingest/Margen.Ingest.csproj" />
   </ItemGroup>
 
 </Project>
