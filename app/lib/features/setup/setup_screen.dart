@@ -152,9 +152,9 @@ class _SetupScreenState extends State<SetupScreen> {
                 ),
               _ => _Periodo(
                   working: _working,
-                  onAbrir: (dia, ingreso, fondo, ahorro) => _paso(
+                  onAbrir: (dias, ingreso, fondo, ahorro) => _paso(
                     () => widget.repository.openPeriod(
-                      payDay: dia,
+                      payDays: dias,
                       expectedIncome: ingreso,
                       safetyFund: fondo,
                       committedSavings: ahorro,
@@ -430,15 +430,31 @@ class _Periodo extends StatefulWidget {
   const _Periodo({required this.working, required this.onAbrir});
 
   final bool working;
-  final void Function(int dia, Money ingreso, Money? fondo, Money? ahorro)
-      onAbrir;
+  final void Function(
+    List<int> dias,
+    Money ingreso,
+    Money? fondo,
+    Money? ahorro,
+  ) onAbrir;
 
   @override
   State<_Periodo> createState() => _PeriodoState();
 }
 
+/// Cada cuánto entra el sueldo.
+enum _Frecuencia {
+  mensual('Una vez al mes'),
+  quincenal('Quincena y fin de mes');
+
+  const _Frecuencia(this.label);
+
+  final String label;
+}
+
 class _PeriodoState extends State<_Periodo> {
+  _Frecuencia _frecuencia = _Frecuencia.quincenal;
   final _dia = TextEditingController();
+  final _segundoDia = TextEditingController(text: '31');
   final _ingreso = TextEditingController();
   final _fondo = TextEditingController();
   final _ahorro = TextEditingController();
@@ -447,6 +463,7 @@ class _PeriodoState extends State<_Periodo> {
   @override
   void dispose() {
     _dia.dispose();
+    _segundoDia.dispose();
     _ingreso.dispose();
     _fondo.dispose();
     _ahorro.dispose();
@@ -454,11 +471,32 @@ class _PeriodoState extends State<_Periodo> {
   }
 
   void _enviar() {
-    final dia = int.tryParse(_dia.text.trim());
+    final dias = <int>[];
 
-    if (dia == null || dia < 1 || dia > 31) {
+    final primero = int.tryParse(_dia.text.trim());
+    if (primero == null || primero < 1 || primero > 31) {
       setState(() => _error = 'El día de cobro va de 1 a 31.');
       return;
+    }
+    dias.add(primero);
+
+    if (_frecuencia == _Frecuencia.quincenal) {
+      final segundo = int.tryParse(_segundoDia.text.trim());
+      if (segundo == null || segundo < 1 || segundo > 31) {
+        setState(() => _error = 'El segundo día de cobro va de 1 a 31.');
+        return;
+      }
+
+      if (segundo == primero) {
+        // Dos cobros el mismo día son un cobro. Dejarlo pasar daría un ciclo de
+        // cero días, y todo lo que reparte entre días se rompería detrás.
+        setState(
+          () => _error = 'Los dos días de cobro no pueden ser el mismo.',
+        );
+        return;
+      }
+
+      dias.add(segundo);
     }
 
     final ingreso = _leerMonto(_ingreso.text);
@@ -482,7 +520,7 @@ class _PeriodoState extends State<_Periodo> {
     }
 
     setState(() => _error = null);
-    widget.onAbrir(dia, ingreso, fondo, ahorro);
+    widget.onAbrir(dias, ingreso, fondo, ahorro);
   }
 
   static Money? _opcional(String texto) =>
@@ -493,8 +531,25 @@ class _PeriodoState extends State<_Periodo> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        ChoiceRow<_Frecuencia>(
+          label: 'Cada cuánto cobras',
+          selected: _frecuencia,
+          enabled: !widget.working,
+          options: [for (final f in _Frecuencia.values) (f, f.label)],
+          onChanged: (valor) => setState(() {
+            _frecuencia = valor;
+            // Con dos cobros, el primero por defecto es la quincena. Se rellena
+            // en vez de dejarlo vacío porque es lo que va a escribir el 95 % de
+            // la gente, y siempre se puede cambiar.
+            if (valor == _Frecuencia.quincenal && _dia.text.isEmpty) {
+              _dia.text = '15';
+            }
+          }),
+        ),
         FieldLine(
-          label: 'Día de cobro',
+          label: _frecuencia == _Frecuencia.quincenal
+              ? 'Primer cobro'
+              : 'Día de cobro',
           controller: _dia,
           mono: true,
           enabled: !widget.working,
@@ -503,16 +558,41 @@ class _PeriodoState extends State<_Periodo> {
             FilteringTextInputFormatter.digitsOnly,
             LengthLimitingTextInputFormatter(2),
           ],
-          help: 'Si cobras el 30 y el mes tiene 28, se usa el último día',
+          help: _frecuencia == _Frecuencia.quincenal
+              ? 'La quincena, normalmente el 15'
+              : 'Si cobras el 30 y el mes tiene 28, se usa el último día',
         ),
+        if (_frecuencia == _Frecuencia.quincenal)
+          FieldLine(
+            label: 'Segundo cobro',
+            controller: _segundoDia,
+            mono: true,
+            enabled: !widget.working,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(2),
+            ],
+            // 31 es como se escribe «fin de mes»: el servidor lo corre al
+            // último día que exista, así que en febrero cae el 28 y en abril
+            // el 30.
+            help: 'Fin de mes se escribe 31, y se ajusta a cada mes',
+          ),
         FieldLine(
-          label: 'Ingreso del período',
+          label: _frecuencia == _Frecuencia.quincenal
+              ? 'Lo que cobras cada quincena'
+              : 'Ingreso del período',
           controller: _ingreso,
           mono: true,
           prefix: r'RD$',
-          hint: '85,000.00',
+          hint: '42,500.00',
           enabled: !widget.working,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          // Es la confusión más cara de esta pantalla: poner el sueldo mensual
+          // con dos cobros duplica el ingreso esperado de cada período.
+          help: _frecuencia == _Frecuencia.quincenal
+              ? 'De un cobro, no del mes entero'
+              : null,
         ),
         FieldLine(
           label: 'Fondo de seguridad',

@@ -1667,20 +1667,23 @@
       },
       "OpenPeriodRequest": {
         "required": [
-          "payDay",
+          "payDays",
           "expectedIncomeCents",
           "safetyFundCents",
           "committedSavingsCents"
         ],
         "type": "object",
         "properties": {
-          "payDay": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
+          "payDays": {
+            "type": "array",
+            "items": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
           },
           "expectedIncomeCents": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",

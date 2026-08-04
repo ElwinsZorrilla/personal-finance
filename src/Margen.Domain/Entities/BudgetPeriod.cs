@@ -18,6 +18,21 @@ public class BudgetPeriod
     /// <summary>Último día del período, inclusive.</summary>
     public DateOnly EndDate { get; set; }
 
+    /// <summary>
+    /// Los días del mes en que se cobra, tal como estaban al abrir el período.
+    /// </summary>
+    /// <remarks>
+    /// Se guarda **en el período y no en unos ajustes globales** por una razón
+    /// concreta: si mañana cambian los días de cobro, los períodos ya cerrados
+    /// tienen que seguir contando su propia historia. Un ajuste global reescribe
+    /// el pasado, y la base histórica —que pondera los tres períodos
+    /// anteriores— se calcularía sobre ciclos que nunca existieron.
+    ///
+    /// También es lo que permite abrir el período siguiente sin volver a
+    /// preguntar: el que está abierto sabe con qué calendario nació.
+    /// </remarks>
+    public IReadOnlyList<int> PayDays { get; set; } = [];
+
     /// <summary>Ingreso que abre el período.</summary>
     public Money ExpectedIncome { get; set; }
 

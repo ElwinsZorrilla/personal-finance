@@ -100,14 +100,22 @@ class SetupRepository {
         'creditLimitCents': creditLimit?.cents,
       });
 
+  /// Abre el período que contiene hoy.
+  ///
+  /// [payDays] son los días del mes en que entra el sueldo: uno si se cobra una
+  /// vez al mes, dos con quincena y fin de mes. **Fin de mes se escribe 31** y
+  /// el servidor lo corre al último día que exista en cada mes.
+  ///
+  /// [expectedIncome] es lo que se cobra **en cada uno** de esos días, no el
+  /// total del mes: un período es un ciclo, y su ingreso es el de ese ciclo.
   Future<void> openPeriod({
-    required int payDay,
+    required List<int> payDays,
     required Money expectedIncome,
     Money? safetyFund,
     Money? committedSavings,
   }) =>
       _api.postJson('/setup/periods', {
-        'payDay': payDay,
+        'payDays': payDays,
         'expectedIncomeCents': expectedIncome.cents,
         'safetyFundCents': safetyFund?.cents,
         'committedSavingsCents': committedSavings?.cents,

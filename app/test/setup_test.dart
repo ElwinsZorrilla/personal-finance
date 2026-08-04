@@ -241,8 +241,8 @@ void main() {
         ),
       );
 
-      await escribir(tester, 'Día de cobro', '30');
-      await escribir(tester, 'Ingreso del período', '0.00');
+      await escribir(tester, 'Primer cobro', '15');
+      await escribir(tester, 'Lo que cobras cada quincena', '0.00');
       await tester.tap(find.text('Abrir el período'));
       await tester.pumpAndSettle();
 
@@ -290,14 +290,14 @@ void main() {
         ),
       );
 
-      await escribir(tester, 'Día de cobro', '30');
-      await escribir(tester, 'Ingreso del período', '85,000.00');
+      await escribir(tester, 'Primer cobro', '15');
+      await escribir(tester, 'Lo que cobras cada quincena', '42,500.00');
       await tester.tap(find.text('Abrir el período'));
       await tester.pumpAndSettle();
 
       expect(
         m.servidor.cuerpoDe('/setup/periods')['expectedIncomeCents'],
-        8500000,
+        4250000,
       );
       expect(listo, 1);
     });
@@ -317,6 +317,59 @@ void main() {
       );
 
       expect(find.textContaining('7 correos'), findsOneWidget);
+    });
+    testWidgets('con quincena y fin de mes viajan los dos días', (
+      tester,
+    ) async {
+      // Es el caso real de quien cobra dos veces al mes. Con un solo día, el
+      // período duraba un mes entero y el reparto diario dividía el dinero de
+      // una quincena entre treinta días: la mitad de lo que se puede gastar,
+      // todos los días, sin que nada fallara.
+      final m = montar([estado(listo: true, categorias: 12, cuentas: 1)]);
+
+      await pintar(
+        tester,
+        SetupScreen(
+          repository: m.repo,
+          status: SetupStatus.fromJson(estado(categorias: 12, cuentas: 1)),
+          onReady: () {},
+        ),
+      );
+
+      await escribir(tester, 'Primer cobro', '15');
+      await escribir(tester, 'Segundo cobro', '31');
+      await escribir(tester, 'Lo que cobras cada quincena', '42,500.00');
+      await tester.tap(find.text('Abrir el período'));
+      await tester.pumpAndSettle();
+
+      expect(m.servidor.cuerpoDe('/setup/periods')['payDays'], [15, 31]);
+    });
+
+    testWidgets('dos cobros el mismo día no se mandan', (tester) async {
+      // Dos cobros el mismo día son un cobro. Dejarlo pasar daría un ciclo de
+      // cero días y reventaría todo lo que reparte entre días.
+      final m = montar([estado(categorias: 12, cuentas: 1)]);
+
+      await pintar(
+        tester,
+        SetupScreen(
+          repository: m.repo,
+          status: SetupStatus.fromJson(estado(categorias: 12, cuentas: 1)),
+          onReady: () {},
+        ),
+      );
+
+      await escribir(tester, 'Primer cobro', '15');
+      await escribir(tester, 'Segundo cobro', '15');
+      await escribir(tester, 'Lo que cobras cada quincena', '42,500.00');
+      await tester.tap(find.text('Abrir el período'));
+      await tester.pumpAndSettle();
+
+      expect(
+        m.servidor.peticiones.any((p) => p.path.endsWith('/setup/periods')),
+        isFalse,
+      );
+      expect(find.textContaining('no pueden ser el mismo'), findsOneWidget);
     });
   });
 }

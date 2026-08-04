@@ -115,11 +115,35 @@ public sealed record CreateAccountRequest(
 /// </summary>
 /// <remarks>
 /// No va del 1 al 30: va de un ingreso al siguiente, que es el ciclo real del
-/// dinero de una persona asalariada. Por eso se da el día de cobro y no dos
+/// dinero de una persona asalariada. Por eso se dan los días de cobro y no dos
 /// fechas.
 /// </remarks>
 public sealed record OpenPeriodRequest(
-    int PayDay,
+    /// <summary>
+    /// Los días del mes en que entra el sueldo. Uno o varios.
+    /// </summary>
+    /// <remarks>
+    /// Era un solo <c>int</c>. Quien cobra quincena y fin de mes tiene **dos
+    /// ciclos por mes**, y con un solo día el reparto diario dividía el dinero
+    /// de una quincena entre treinta días: la mitad de lo que se puede gastar.
+    ///
+    /// «Fin de mes» se escribe 31 y el calendario lo corre al último día que
+    /// exista en cada mes.
+    /// </remarks>
+    IReadOnlyList<int> PayDays,
+
+    /// <summary>
+    /// Lo que se cobra **en cada uno** de esos días, no el total del mes.
+    /// </summary>
+    /// <remarks>
+    /// Un período es un ciclo, y su ingreso es el de ese ciclo. Poner aquí el
+    /// sueldo mensual con dos cobros duplicaría el ingreso esperado de cada
+    /// período.
+    ///
+    /// No entra en la fórmula del dinero seguro —esa parte del saldo real— pero
+    /// sí en lo que se enseña y en el cierre de período.
+    /// </remarks>
     long ExpectedIncomeCents,
+
     long? SafetyFundCents,
     long? CommittedSavingsCents);

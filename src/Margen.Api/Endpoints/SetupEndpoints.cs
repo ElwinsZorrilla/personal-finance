@@ -1,6 +1,7 @@
 using Margen.Api.Auth;
 using Margen.Api.Budget;
 using Margen.Api.Contracts;
+using Margen.Budget;
 using Margen.Classify;
 using Margen.Domain;
 using Margen.Domain.Entities;
@@ -241,9 +242,11 @@ public static class SetupEndpoints
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.PayDay is < 1 or > 31)
+        Outcome<PaySchedule> calendario = PaySchedule.Of(request.PayDays ?? []);
+
+        if (!calendario.IsComputed)
         {
-            return ApiResults.BadRequest("El día de cobro va de 1 a 31.");
+            return ApiResults.BadRequest(calendario.Reason!);
         }
 
         if (request.ExpectedIncomeCents <= 0)
@@ -264,13 +267,15 @@ public static class SetupEndpoints
                 abierto.Id, abierto.StartDate, abierto.EndDate, abierto.ExpectedIncome.Cents, false));
         }
 
-        (DateOnly inicio, DateOnly fin) = CycleAround(hoy, request.PayDay);
+        BudgetCycle ciclo = calendario.Value.CycleAround(hoy);
+        (DateOnly inicio, DateOnly fin) = (ciclo.Start, ciclo.End);
 
         var periodo = new BudgetPeriod
         {
             Id = Guid.CreateVersion7(),
             StartDate = inicio,
             EndDate = fin,
+            PayDays = [.. calendario.Value.Days],
             ExpectedIncome = new Money(request.ExpectedIncomeCents),
             SafetyFund = new Money(request.SafetyFundCents ?? 0),
             CommittedSavings = new Money(request.CommittedSavingsCents ?? 0),
@@ -284,40 +289,6 @@ public static class SetupEndpoints
             $"/setup/periods/{periodo.Id}",
             new PeriodOpenedView(
                 periodo.Id, periodo.StartDate, periodo.EndDate, periodo.ExpectedIncome.Cents, true));
-    }
-
-    /// <summary>
-    /// El ciclo de cobro que contiene un día.
-    /// </summary>
-    /// <remarks>
-    /// Empieza el día de cobro de este mes si ya pasó, o el del mes anterior si
-    /// todavía no. Termina el día antes del cobro siguiente.
-    ///
-    /// Un día 31 en un mes de 30 se corre al último día del mes. Sin eso, un
-    /// cobro el 31 dejaría sin período los meses de treinta días —y febrero
-    /// entero—, que es la clase de error que aparece una vez al año y parece
-    /// magia negra.
-    /// </remarks>
-    internal static (DateOnly Start, DateOnly End) CycleAround(DateOnly today, int payDay)
-    {
-        DateOnly EsteMes(int año, int mes)
-        {
-            int dia = Math.Min(payDay, DateTime.DaysInMonth(año, mes));
-            return new DateOnly(año, mes, dia);
-        }
-
-        DateOnly inicio = EsteMes(today.Year, today.Month);
-
-        if (inicio > today)
-        {
-            DateOnly anterior = today.AddMonths(-1);
-            inicio = EsteMes(anterior.Year, anterior.Month);
-        }
-
-        DateOnly siguiente = inicio.AddMonths(1);
-        DateOnly fin = EsteMes(siguiente.Year, siguiente.Month).AddDays(-1);
-
-        return (inicio, fin);
     }
 
     private static AccountView ToView(Account a) => new(

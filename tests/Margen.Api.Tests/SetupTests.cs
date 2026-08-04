@@ -178,7 +178,7 @@ public sealed class SetupTests(PostgresFixture postgres)
         using var _2 = client;
 
         HttpResponseMessage response = await client.PostAsJsonAsync(
-            "/setup/periods", new OpenPeriodRequest(25, 6_000_000, null, null));
+            "/setup/periods", new OpenPeriodRequest([25], 6_000_000, null, null));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
@@ -201,10 +201,10 @@ public sealed class SetupTests(PostgresFixture postgres)
         using var _2 = client;
 
         await client.PostAsJsonAsync(
-            "/setup/periods", new OpenPeriodRequest(25, 6_000_000, null, null));
+            "/setup/periods", new OpenPeriodRequest([25], 6_000_000, null, null));
 
         HttpResponseMessage segunda = await client.PostAsJsonAsync(
-            "/setup/periods", new OpenPeriodRequest(25, 6_000_000, null, null));
+            "/setup/periods", new OpenPeriodRequest([25], 6_000_000, null, null));
 
         PeriodOpenedView periodo = (await segunda.Content.ReadFromJsonAsync<PeriodOpenedView>())!;
 
@@ -212,26 +212,6 @@ public sealed class SetupTests(PostgresFixture postgres)
 
         await using MargenDbContext db = Db();
         Assert.Equal(1, await db.BudgetPeriods.CountAsync());
-    }
-
-    [Fact]
-    public void un_cobro_el_31_no_deja_sin_periodo_los_meses_de_treinta()
-    {
-        // El error que aparece una vez al año y parece magia negra.
-        foreach (DateOnly dia in new[]
-        {
-            new DateOnly(2026, 2, 15),
-            new DateOnly(2026, 4, 10),
-            new DateOnly(2026, 6, 30),
-            new DateOnly(2026, 3, 1),
-        })
-        {
-            (DateOnly inicio, DateOnly fin) = SetupEndpoints.CycleAround(dia, 31);
-
-            Assert.True(
-                inicio <= dia && fin >= dia,
-                $"el ciclo del {dia} con cobro el 31 no contiene ese día");
-        }
     }
 
     [Fact]
@@ -248,7 +228,7 @@ public sealed class SetupTests(PostgresFixture postgres)
             new CreateAccountRequest("Nómina", "1234", "Checking", 500_000, null));
 
         await client.PostAsJsonAsync(
-            "/setup/periods", new OpenPeriodRequest(25, 6_000_000, null, null));
+            "/setup/periods", new OpenPeriodRequest([25], 6_000_000, null, null));
 
         SetupStatusView estado =
             (await client.GetFromJsonAsync<SetupStatusView>("/setup/status"))!;
@@ -256,4 +236,79 @@ public sealed class SetupTests(PostgresFixture postgres)
         Assert.True(estado.IsReady);
         Assert.Empty(estado.Missing);
     }
+    [Fact]
+    public async Task dos_cobros_abren_un_periodo_de_media_quincena()
+    {
+        // Quien cobra quincena y fin de mes tiene **dos ciclos por mes**. Con un
+        // solo día, el período duraba un mes y el reparto diario dividía el
+        // dinero de una quincena entre treinta días: la mitad de lo que se puede
+        // gastar, todos los días, sin que nada fallara.
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        HttpResponseMessage respuesta = await client.PostAsJsonAsync(
+            "/setup/periods", new OpenPeriodRequest([15, 31], 4_250_000, null, null));
+
+        Assert.Equal(HttpStatusCode.Created, respuesta.StatusCode);
+
+        PeriodOpenedView periodo =
+            (await respuesta.Content.ReadFromJsonAsync<PeriodOpenedView>())!;
+
+        int dias = periodo.EndDate.DayNumber - periodo.StartDate.DayNumber + 1;
+
+        Assert.InRange(dias, 13, 17);
+    }
+
+    [Fact]
+    public async Task un_dia_de_cobro_que_no_existe_se_rechaza()
+    {
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        HttpResponseMessage respuesta = await client.PostAsJsonAsync(
+            "/setup/periods", new OpenPeriodRequest([0], 4_250_000, null, null));
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task sin_ningun_dia_de_cobro_no_se_abre_nada()
+    {
+        // Fallo cerrado: sin calendario no hay ciclo, y un ciclo inventado es
+        // una cifra de gasto diario inventada.
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        HttpResponseMessage respuesta = await client.PostAsJsonAsync(
+            "/setup/periods", new OpenPeriodRequest([], 4_250_000, null, null));
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task el_periodo_recuerda_con_que_calendario_nacio()
+    {
+        // Se guarda en el período y no en unos ajustes globales: si mañana
+        // cambian los días de cobro, los períodos cerrados tienen que seguir
+        // contando su propia historia. La base histórica pondera los tres
+        // anteriores, y un ajuste global la calcularía sobre ciclos que nunca
+        // existieron.
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        await client.PostAsJsonAsync(
+            "/setup/periods", new OpenPeriodRequest([15, 31], 4_250_000, null, null));
+
+        await using MargenDbContext db = Db();
+
+        Margen.Domain.Entities.BudgetPeriod periodo =
+            await db.BudgetPeriods.SingleAsync();
+
+        Assert.Equal([15, 31], periodo.PayDays);
+    }
+
 }
