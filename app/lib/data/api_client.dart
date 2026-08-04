@@ -120,6 +120,42 @@ class ApiClient {
     return _decode(response);
   }
 
+  /// Una respuesta que es una lista y no un objeto.
+  ///
+  /// `getJson` exige un objeto JSON en la raíz, que es lo correcto para casi
+  /// todo el API. `/setup/accounts` devuelve un arreglo, y envolverlo en un
+  /// objeto solo para encajar aquí sería cambiar el contrato por comodidad del
+  /// cliente.
+  Future<List<Map<String, dynamic>>> getList(String path) async {
+    final response = await _run(ApiRequest(method: 'GET', path: path));
+
+    try {
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is List) {
+        return [
+          for (final item in decoded)
+            if (item is Map<String, dynamic>) item,
+        ];
+      }
+
+      throw const ApiFailure(
+        ApiFailureKind.serverError,
+        'El servidor respondió algo que no es una lista.',
+      );
+    } on FormatException {
+      throw const ApiFailure(
+        ApiFailureKind.serverError,
+        'El servidor respondió algo que no es JSON.',
+      );
+    }
+  }
+
+  /// Da de baja algo. No devuelve nada que interese leer.
+  Future<void> delete(String path) async {
+    await _run(ApiRequest(method: 'DELETE', path: path));
+  }
+
   /// Corrige algo que ya existe.
   ///
   /// Es `PUT` y no otro `POST` porque el servidor distingue: `POST /setup/periods`

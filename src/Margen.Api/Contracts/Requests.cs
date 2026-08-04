@@ -147,3 +147,17 @@ public sealed record OpenPeriodRequest(
 
     long? SafetyFundCents,
     long? CommittedSavingsCents);
+
+/// <summary>
+/// Corrección de una cuenta ya dada de alta.
+/// </summary>
+/// <remarks>
+/// **No lleva los cuatro dígitos ni el tipo.** Son la identidad de la cuenta
+/// frente a los correos del banco y frente a los movimientos ya colgados;
+/// cambiarlos la convertiría en otra y dejaría su historial atado a algo que ya
+/// no existe. Para eso se da de baja esta y se crea otra.
+/// </remarks>
+public sealed record UpdateAccountRequest(
+    string Name,
+    long BalanceCents,
+    long? CreditLimitCents);

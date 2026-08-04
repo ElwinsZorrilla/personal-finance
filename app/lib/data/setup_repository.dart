@@ -22,6 +22,43 @@ class OpenPeriod {
   int get totalDays => endDate.difference(startDate).inDays + 1;
 }
 
+/// Una cuenta o tarjeta ya dada de alta.
+class Account {
+  const Account({
+    required this.id,
+    required this.name,
+    required this.lastFour,
+    required this.kind,
+    required this.balance,
+    this.creditLimit,
+  });
+
+  factory Account.fromJson(Map<String, dynamic> json) => Account(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        lastFour: json['lastFour'] as String,
+        kind: AccountKind.values.firstWhere(
+          (k) => k.wire == json['kind'],
+          orElse: () => AccountKind.checking,
+        ),
+        balance: Money(json['balanceCents'] as int? ?? 0),
+        creditLimit: json['creditLimitCents'] == null
+            ? null
+            : Money(json['creditLimitCents'] as int),
+      );
+
+  final String id;
+  final String name;
+
+  /// Lo único que trae el correo del banco para saber de qué cuenta habla. Por
+  /// eso no se puede cambiar: es la identidad de la cuenta.
+  final String lastFour;
+
+  final AccountKind kind;
+  final Money balance;
+  final Money? creditLimit;
+}
+
 /// Qué le falta al servidor para poder calcular.
 ///
 /// Lleva la lista de motivos y no solo un sí o un no. El servidor la escribe en
@@ -120,6 +157,36 @@ class SetupRepository {
         'balanceCents': balance.cents,
         'creditLimitCents': creditLimit?.cents,
       });
+
+  /// Las cuentas activas, en el orden en que se dieron de alta.
+  Future<List<Account>> accounts() async {
+    final lista = await _api.getList('/setup/accounts');
+    return [for (final item in lista) Account.fromJson(item)];
+  }
+
+  /// Corrige nombre, saldo y límite.
+  ///
+  /// **Los cuatro dígitos y el tipo no se cambian.** Son la identidad de la
+  /// cuenta frente a los correos del banco y frente a los movimientos ya
+  /// colgados: cambiarlos la convertiría en otra distinta.
+  Future<Account> updateAccount({
+    required String id,
+    required String name,
+    required Money balance,
+    Money? creditLimit,
+  }) async =>
+      Account.fromJson(
+        await _api.putJson('/setup/accounts/$id', {
+          'name': name,
+          'balanceCents': balance.cents,
+          'creditLimitCents': creditLimit?.cents,
+        }),
+      );
+
+  /// Da de baja una cuenta. **No la borra**: sus movimientos siguen contando
+  /// para los períodos ya cerrados.
+  Future<void> deactivateAccount(String id) =>
+      _api.delete('/setup/accounts/$id');
 
   /// El período abierto, o nulo si no hay ninguno que contenga hoy.
   Future<OpenPeriod?> currentPeriod() async {

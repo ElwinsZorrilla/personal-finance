@@ -13,6 +13,7 @@ import '../../design/components/error_note.dart';
 import '../../design/components/field_line.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
+import 'accounts_screen.dart';
 
 /// Corregir el ciclo de cobro sin esperar a que termine el período.
 ///
@@ -119,7 +120,7 @@ class _PeriodSettingsScreenState extends State<PeriodSettingsScreen> {
       dias.add(segundo);
     }
 
-    final ingreso = _leerMonto(_ingreso.text);
+    final ingreso = leerMonto(_ingreso.text);
     if (ingreso == null || ingreso.cents <= 0) {
       setState(
         () => _error = 'El ingreso tiene que ser mayor que cero.',
@@ -309,15 +310,4 @@ enum _Frecuencia {
   const _Frecuencia(this.label);
 
   final String label;
-}
-
-/// Texto a centavos sin pasar por punto flotante. Ver `setup_screen.dart`.
-Money? _leerMonto(String texto) {
-  if (texto.trim().isEmpty) return null;
-
-  try {
-    return Money.parse(texto, format: AmountFormat.commaThousands);
-  } on FormatException {
-    return null;
-  }
 }

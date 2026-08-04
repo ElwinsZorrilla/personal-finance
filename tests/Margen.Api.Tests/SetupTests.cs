@@ -404,6 +404,135 @@ public sealed class SetupTests(PostgresFixture postgres)
         Assert.Equal(4_250_000, periodo.ExpectedIncomeCents);
         Assert.False(periodo.Created);
     }
+    [Fact]
+    public async Task las_cuentas_se_pueden_listar()
+    {
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        await client.PostAsJsonAsync(
+            "/setup/accounts",
+            new CreateAccountRequest("Popular corriente", "4821", "Checking", 1_250_050, null));
+        await client.PostAsJsonAsync(
+            "/setup/accounts",
+            new CreateAccountRequest("Visa", "9876", "Credit", -450_000, 10_000_000));
+
+        List<AccountView> cuentas =
+            (await client.GetFromJsonAsync<List<AccountView>>("/setup/accounts"))!;
+
+        Assert.Equal(2, cuentas.Count);
+        Assert.Equal("Popular corriente", cuentas[0].Name);
+        Assert.Equal(1_250_050, cuentas[0].BalanceCents);
+        Assert.Equal(10_000_000, cuentas[1].CreditLimitCents);
+    }
+
+    [Fact]
+    public async Task corregir_el_saldo_de_una_cuenta()
+    {
+        // Es lo que más se va a usar: el saldo es la única cifra que escribe una
+        // persona, y se desvía en cuanto un movimiento no llega por correo.
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        HttpResponseMessage creada = await client.PostAsJsonAsync(
+            "/setup/accounts",
+            new CreateAccountRequest("Popular", "4821", "Checking", 1_000_000, null));
+
+        AccountView cuenta = (await creada.Content.ReadFromJsonAsync<AccountView>())!;
+
+        HttpResponseMessage respuesta = await client.PutAsJsonAsync(
+            $"/setup/accounts/{cuenta.Id}",
+            new UpdateAccountRequest("Popular corriente", 1_777_725, null));
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+
+        AccountView corregida = (await respuesta.Content.ReadFromJsonAsync<AccountView>())!;
+
+        Assert.Equal("Popular corriente", corregida.Name);
+        Assert.Equal(1_777_725, corregida.BalanceCents);
+
+        // Los cuatro dígitos no se tocan: son la identidad frente a los correos.
+        Assert.Equal("4821", corregida.LastFour);
+    }
+
+    [Fact]
+    public async Task dar_de_baja_una_cuenta_no_la_borra()
+    {
+        // Borrarla se llevaría sus movimientos, y con ellos el gasto de los
+        // períodos cerrados: la base histórica pondera los tres anteriores y
+        // pasaría a calcularse sobre un pasado que cambió.
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        HttpResponseMessage creada = await client.PostAsJsonAsync(
+            "/setup/accounts",
+            new CreateAccountRequest("Vieja", "1111", "Checking", 100_000, null));
+        await client.PostAsJsonAsync(
+            "/setup/accounts",
+            new CreateAccountRequest("Nueva", "2222", "Checking", 200_000, null));
+
+        AccountView vieja = (await creada.Content.ReadFromJsonAsync<AccountView>())!;
+
+        HttpResponseMessage baja = await client.DeleteAsync(
+            new Uri($"/setup/accounts/{vieja.Id}", UriKind.Relative));
+
+        Assert.Equal(HttpStatusCode.OK, baja.StatusCode);
+
+        List<AccountView> activas =
+            (await client.GetFromJsonAsync<List<AccountView>>("/setup/accounts"))!;
+
+        Assert.Single(activas);
+        Assert.Equal("Nueva", activas[0].Name);
+
+        await using MargenDbContext db = Db();
+
+        // Sigue en la base, inactiva.
+        Assert.Equal(2, await db.Accounts.CountAsync());
+    }
+
+    [Fact]
+    public async Task no_se_puede_dar_de_baja_la_ultima_cuenta()
+    {
+        // Sin ninguna cuenta activa el panel no puede calcular, y la app
+        // volvería a la puesta en marcha sin que nadie lo hubiera pedido.
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        HttpResponseMessage creada = await client.PostAsJsonAsync(
+            "/setup/accounts",
+            new CreateAccountRequest("Única", "4821", "Checking", 100_000, null));
+
+        AccountView unica = (await creada.Content.ReadFromJsonAsync<AccountView>())!;
+
+        HttpResponseMessage baja = await client.DeleteAsync(
+            new Uri($"/setup/accounts/{unica.Id}", UriKind.Relative));
+
+        Assert.Equal(HttpStatusCode.BadRequest, baja.StatusCode);
+
+        List<AccountView> activas =
+            (await client.GetFromJsonAsync<List<AccountView>>("/setup/accounts"))!;
+
+        Assert.Single(activas);
+    }
+
+    [Fact]
+    public async Task corregir_una_cuenta_que_no_existe_da_404()
+    {
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        HttpResponseMessage respuesta = await client.PutAsJsonAsync(
+            $"/setup/accounts/{Guid.NewGuid()}",
+            new UpdateAccountRequest("Fantasma", 100, null));
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+    }
+
 
 
 }

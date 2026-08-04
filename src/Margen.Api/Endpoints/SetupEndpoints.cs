@@ -58,6 +58,21 @@ public static class SetupEndpoints
             .WithName("OpenPeriod")
             .Produces<PeriodOpenedView>(StatusCodes.Status201Created);
 
+        group.MapGet("/accounts", ListAccountsAsync)
+            .RequireAuthorization(ScopePolicies.Full)
+            .WithName("ListAccounts")
+            .Produces<IReadOnlyList<AccountView>>();
+
+        group.MapPut("/accounts/{id:guid}", UpdateAccountAsync)
+            .RequireAuthorization(ScopePolicies.Full)
+            .WithName("UpdateAccount")
+            .Produces<AccountView>();
+
+        group.MapDelete("/accounts/{id:guid}", DeactivateAccountAsync)
+            .RequireAuthorization(ScopePolicies.Full)
+            .WithName("DeactivateAccount")
+            .Produces<AccountView>();
+
         group.MapGet("/periods/current", CurrentPeriodAsync)
             .RequireAuthorization(ScopePolicies.Full)
             .WithName("GetCurrentPeriod")
@@ -299,6 +314,117 @@ public static class SetupEndpoints
             $"/setup/periods/{periodo.Id}",
             new PeriodOpenedView(
                 periodo.Id, periodo.StartDate, periodo.EndDate, periodo.ExpectedIncome.Cents, true));
+    }
+
+    /// <summary>Las cuentas activas, en el orden en que se dieron de alta.</summary>
+    private static async Task<IResult> ListAccountsAsync(
+        [FromServices] MargenDbContext db,
+        CancellationToken cancellationToken)
+    {
+        List<Account> cuentas = await db.Accounts
+            .AsNoTracking()
+            .Where(a => a.IsActive)
+            .OrderBy(a => a.CreatedAt)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return Results.Ok(cuentas.Select(ToView).ToList());
+    }
+
+    /// <summary>
+    /// Corrige una cuenta: nombre, saldo y límite.
+    /// </summary>
+    /// <remarks>
+    /// **Los cuatro últimos dígitos y el tipo no se cambian aquí.** No es
+    /// pereza: son la identidad de la cuenta frente a los correos del banco y
+    /// frente a los movimientos ya colgados. Cambiarlos convertiría esta cuenta
+    /// en otra distinta y dejaría su historial atado a una identidad que ya no
+    /// existe. Para eso se da de baja esta y se crea otra.
+    ///
+    /// El saldo sí, y es lo que más se va a usar: es la única cifra del sistema
+    /// que escribe una persona, y se desvía de la realidad en cuanto un
+    /// movimiento no llega por correo.
+    /// </remarks>
+    private static async Task<IResult> UpdateAccountAsync(
+        Guid id,
+        [FromBody] UpdateAccountRequest request,
+        [FromServices] MargenDbContext db,
+        [FromServices] TimeProvider clock,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return ApiResults.BadRequest("La cuenta necesita un nombre.");
+        }
+
+        Account? cuenta = await db.Accounts
+            .FirstOrDefaultAsync(a => a.Id == id && a.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (cuenta is null)
+        {
+            return ApiResults.NotFound("No hay ninguna cuenta activa con ese identificador.");
+        }
+
+        cuenta.Name = request.Name.Trim();
+        cuenta.Balance = new Money(request.BalanceCents);
+        cuenta.CreditLimit = request.CreditLimitCents is long limite ? new Money(limite) : null;
+        cuenta.UpdatedAt = clock.GetUtcNow().UtcDateTime;
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        return Results.Ok(ToView(cuenta));
+    }
+
+    /// <summary>
+    /// Da de baja una cuenta. **No la borra.**
+    /// </summary>
+    /// <remarks>
+    /// Borrarla se llevaría por delante sus movimientos, y con ellos el gasto
+    /// de los períodos ya cerrados: la base histórica pondera los tres
+    /// anteriores y pasaría a calcularse sobre un pasado que cambió.
+    ///
+    /// Inactiva significa que no cuenta para el dinero líquido y que los correos
+    /// nuevos con esos cuatro dígitos ya no encuentran dónde colgarse. Lo que
+    /// pasó, pasó.
+    ///
+    /// **No se deja dar de baja la última.** Sin ninguna cuenta activa el panel
+    /// no puede calcular, y la app volvería a la pantalla de puesta en marcha
+    /// sin que nadie lo hubiera pedido.
+    /// </remarks>
+    private static async Task<IResult> DeactivateAccountAsync(
+        Guid id,
+        [FromServices] MargenDbContext db,
+        [FromServices] TimeProvider clock,
+        CancellationToken cancellationToken)
+    {
+        Account? cuenta = await db.Accounts
+            .FirstOrDefaultAsync(a => a.Id == id && a.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (cuenta is null)
+        {
+            return ApiResults.NotFound("No hay ninguna cuenta activa con ese identificador.");
+        }
+
+        int activas = await db.Accounts
+            .CountAsync(a => a.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (activas <= 1)
+        {
+            return ApiResults.BadRequest(
+                "Es la única cuenta activa. Sin ninguna, el panel no puede calcular.");
+        }
+
+        cuenta.IsActive = false;
+        cuenta.UpdatedAt = clock.GetUtcNow().UtcDateTime;
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        return Results.Ok(ToView(cuenta));
     }
 
     /// <summary>El período abierto que contiene hoy.</summary>
