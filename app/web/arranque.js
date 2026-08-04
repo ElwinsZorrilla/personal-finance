@@ -19,6 +19,16 @@
 
   var TOPE_MS = 20000;
 
+  // La versión de esta compilación. La sustituye el Dockerfile al construir la
+  // imagen; si aparece con el marcador sin sustituir, la sustitución falló.
+  //
+  // Sale en el diagnóstico porque **«la app corre código viejo» ya ha costado
+  // dos despliegues**, y desde un iPhone no había forma de saberlo: la pantalla
+  // se ve idéntica sirva lo que sirva. Ahora se ve.
+  var VERSION = '__BUILD_STAMP__';
+
+  window.__margenVersion = VERSION;
+
   function overlay() {
     return document.getElementById('cargando');
   }
@@ -49,6 +59,7 @@
     e.textContent =
       'La app no llegó a arrancar en ' + TOPE_MS / 1000 + ' segundos.\n\n' +
       'Motivo: ' + detalle + '\n\n' +
+      'Versión: ' + VERSION + '\n\n' +
       'Navegador: ' + navigator.userAgent;
     e.style.whiteSpace = 'pre-wrap';
   }, TOPE_MS);

@@ -41,4 +41,42 @@ RUN test -n "${API_BASE_URL}" \
        fi \
     && nginx -t
 
+# ---- La versión entra en las URL ----
+#
+# Flutter Web **no pone hash en los nombres**: su salida se llama siempre
+# `main.dart.js` y `flutter_bootstrap.js`. Sin nada más, la URL de un arreglo es
+# idéntica a la del error que arregla, y cualquier caché por el camino puede
+# seguir sirviendo el error indefinidamente sin que nada lo delate.
+#
+# Pasó dos veces. La primera, un `immutable` de un año en el propio nginx: seis
+# despliegues seguidos sin que cambiara nada en la pantalla. La segunda,
+# Cloudflare reescribiendo `no-cache` a `max-age=14400` — porque **las cabeceras
+# del origen son una petición, no una orden**: hay una CDN en medio con su
+# propia política y gana ella.
+#
+# Una URL distinta no se puede negociar. `index.html` es el único archivo cuya
+# dirección no cambia, y es el que lleva dentro las de todos los demás.
+#
+# Cada sustitución se comprueba después. Un `sed` que no encuentra su patrón
+# sale con 0: sin los `grep`, un cambio de plantilla de Flutter dejaría la
+# imagen construida y el versionado apagado —justo el fallo que esto viene a
+# evitar, y otra vez invisible—.
+ARG BUILD_STAMP=""
+RUN test -n "${BUILD_STAMP}" \
+    || { echo "FALLO: falta --build-arg BUILD_STAMP."; exit 1; } \
+    && cd /usr/share/nginx/html \
+    && sed -i \
+        -e "s|src=\"arranque.js\"|src=\"arranque.js?v=${BUILD_STAMP}\"|" \
+        -e "s|src=\"flutter_bootstrap.js\"|src=\"flutter_bootstrap.js?v=${BUILD_STAMP}\"|" \
+        index.html \
+    && sed -i \
+        "s|\"mainJsPath\":\"main.dart.js\"|\"mainJsPath\":\"main.dart.js?v=${BUILD_STAMP}\"|" \
+        flutter_bootstrap.js \
+    && sed -i "s|__BUILD_STAMP__|${BUILD_STAMP}|g" arranque.js \
+    && grep -q "flutter_bootstrap.js?v=${BUILD_STAMP}" index.html \
+    && grep -q "arranque.js?v=${BUILD_STAMP}" index.html \
+    && grep -q "main.dart.js?v=${BUILD_STAMP}" flutter_bootstrap.js \
+    && ! grep -q "__BUILD_STAMP__" arranque.js \
+    || { echo "FALLO: el versionado de URL no se aplicó entero."; exit 1; }
+
 EXPOSE 8080

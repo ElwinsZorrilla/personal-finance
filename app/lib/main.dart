@@ -10,6 +10,7 @@ import 'data/enrollment.dart';
 import 'data/api_sender.dart';
 import 'data/local_store.dart';
 import 'data/mock_repository.dart';
+import 'data/setup_repository.dart';
 import 'design/theme.dart';
 import 'design/tokens.dart';
 import 'design/typography.dart';
@@ -28,12 +29,13 @@ Future<void> main() async {
     ),
   );
 
-  final (repository, review, enrollment) = buildRepositories();
+  final (repository, review, enrollment, setup) = buildRepositories();
   runApp(
     MargenApp(
       repository: repository,
       review: review,
       enrollment: enrollment,
+      setup: setup,
     ),
   );
 }
@@ -44,7 +46,8 @@ Future<void> main() async {
 /// resuelve al compilar y la rama muerta se elimina del binario. Es lo que hace
 /// que `MockRepository` —y los seis movimientos de ejemplo que lleva dentro— no
 /// viaje en release.
-(DashboardRepository, ReviewRepository, Enrollment?) buildRepositories() {
+(DashboardRepository, ReviewRepository, Enrollment?, SetupRepository?)
+    buildRepositories() {
   if (Env.useMocks) {
     // Sin alta: los datos de ejemplo no necesitan servidor, y pedir un código
     // para verlos convertiría el modo de desarrollo en algo más lento que el
@@ -52,6 +55,7 @@ Future<void> main() async {
     return (
       const MockDashboardRepository(MockRepository.strained),
       const MockReviewRepository(),
+      null,
       null,
     );
   }
@@ -68,6 +72,7 @@ Future<void> main() async {
     RemoteDashboardRepository(api: api, store: store),
     RemoteReviewRepository(api),
     Enrollment(api: api, key: defaultDeviceKey(), store: store),
+    SetupRepository(api),
   );
 }
 
@@ -91,6 +96,7 @@ class MargenApp extends StatelessWidget {
     required this.repository,
     required this.review,
     this.enrollment,
+    this.setup,
   });
 
   final DashboardRepository repository;
@@ -99,6 +105,9 @@ class MargenApp extends StatelessWidget {
   /// Nulo con datos de ejemplo: ahí no hay servidor al que darse de alta.
   final Enrollment? enrollment;
 
+  /// Nulo por el mismo motivo: sin servidor no hay nada que configurar.
+  final SetupRepository? setup;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -106,12 +115,17 @@ class MargenApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       home: enrollment == null
-          ? DashboardLoader(repository: repository, review: review)
+          ? DashboardLoader(
+              repository: repository,
+              review: review,
+              setup: setup,
+            )
           : SessionGate(
               enrollment: enrollment!,
               deviceName: _deviceName(),
               repository: repository,
               review: review,
+              setup: setup,
             ),
     );
   }

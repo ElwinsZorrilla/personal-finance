@@ -99,7 +99,11 @@ services:
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/index.html"]
+      # `127.0.0.1` y no `localhost`. Dentro del contenedor, `localhost`
+      # resuelve primero a `::1`, y nginx escucha en IPv4: la comprobación daba
+      # «connection refused» y el contenedor figuraba como enfermo mientras
+      # servía la app perfectamente. Se vio pidiéndoselo a las dos direcciones.
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/index.html"]
       interval: 30s
       timeout: 5s
       retries: 3

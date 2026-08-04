@@ -3,9 +3,11 @@ import 'package:flutter/widgets.dart';
 import '../../core/period.dart';
 import '../../data/api_client.dart';
 import '../../data/dashboard_repository.dart';
+import '../../data/setup_repository.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import '../../domain/models.dart';
+import '../setup/setup_screen.dart';
 import 'app_shell.dart';
 
 /// Carga el panel y decide qué se ve mientras tanto.
@@ -19,10 +21,15 @@ class DashboardLoader extends StatefulWidget {
     super.key,
     required this.repository,
     required this.review,
+    this.setup,
   });
 
   final DashboardRepository repository;
   final ReviewRepository review;
+
+  /// Opcional porque el modo de maquetas no tiene servidor al que preguntar.
+  /// Sin él, un 409 se enseña como antes.
+  final SetupRepository? setup;
 
   @override
   State<DashboardLoader> createState() => _DashboardLoaderState();
@@ -31,6 +38,7 @@ class DashboardLoader extends StatefulWidget {
 class _DashboardLoaderState extends State<DashboardLoader> {
   DashboardSnapshot? _snapshot;
   ApiFailure? _failure;
+  SetupStatus? _pendiente;
   bool _loading = true;
 
   @override
@@ -49,15 +57,49 @@ class _DashboardLoaderState extends State<DashboardLoader> {
       setState(() {
         _snapshot = snapshot;
         _failure = null;
+        _pendiente = null;
         _loading = false;
       });
     } on ApiFailure catch (failure) {
       if (!mounted) return;
 
+      // **Un 409 no siempre es un error que enseñar.** El servidor responde
+      // «no puedo calcular» tanto cuando falta configurar la app como cuando
+      // está configurada y aun así no hay con qué. Lo primero se arregla desde
+      // la app; lo segundo, no.
+      //
+      // Antes los dos casos acababan en la misma pantalla —«todavía no hay
+      // cifras que enseñar», sin nada que tocar—, y el primero es justo el
+      // estado en que arranca una instalación nueva: los endpoints de
+      // configuración existían desde la Fase 4 y ninguna pantalla los llamaba.
+      final pendiente = failure.kind == ApiFailureKind.unavailableData
+          ? await _queFalta()
+          : null;
+
+      if (!mounted) return;
+
       setState(() {
+        _pendiente = pendiente;
         _failure = failure;
         _loading = false;
       });
+    }
+  }
+
+  /// Pregunta qué falta, o nulo si no falta nada que la app pueda arreglar.
+  ///
+  /// Si la consulta falla se devuelve nulo y se enseña el error original: el
+  /// 409 del panel es información cierta, y taparlo con un fallo de una
+  /// consulta secundaria cambiaría un mensaje correcto por otro que no lo es.
+  Future<SetupStatus?> _queFalta() async {
+    final setup = widget.setup;
+    if (setup == null) return null;
+
+    try {
+      final estado = await setup.status();
+      return estado.isReady ? null : estado;
+    } on ApiFailure {
+      return null;
     }
   }
 
@@ -94,6 +136,17 @@ class _DashboardLoaderState extends State<DashboardLoader> {
     }
 
     if (_loading) return const _Waiting();
+
+    final pendiente = _pendiente;
+    final setup = widget.setup;
+
+    if (pendiente != null && setup != null) {
+      return SetupScreen(
+        repository: setup,
+        status: pendiente,
+        onReady: _load,
+      );
+    }
 
     return _Failure(failure: _failure, onRetry: _load);
   }
