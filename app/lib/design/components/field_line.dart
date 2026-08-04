@@ -1,5 +1,5 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 
 import '../tokens.dart';
 import '../typography.dart';
@@ -97,37 +97,72 @@ class _FieldLineState extends State<FieldLine> {
             style: Type.eyebrow(color: activo ? Tone.bone : Tone.muted),
           ),
           const SizedBox(height: Space.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              if (widget.prefix != null) ...[
-                Text(widget.prefix!, style: Type.data(17, color: Tone.faint)),
-                const SizedBox(width: Space.sm),
-              ],
-              Expanded(
-                child: EditableText(
-                  controller: widget.controller,
-                  focusNode: _focus,
-                  style: estilo,
-                  cursorColor: Tone.bone,
-                  backgroundCursorColor: Tone.line,
-                  readOnly: !widget.enabled,
-                  autofocus: widget.autofocus,
-                  keyboardType: widget.keyboardType,
-                  inputFormatters: widget.inputFormatters,
-                  onSubmitted: widget.onSubmitted,
-                  textInputAction: widget.onSubmitted == null
-                      ? TextInputAction.next
-                      : TextInputAction.go,
-                  selectionColor: Tone.line,
-                  // Ni corrector ni sugerencias: aquí se escriben nombres de
-                  // cuenta, dígitos y cifras. El corrector solo puede estorbar.
-                  autocorrect: false,
-                  enableSuggestions: false,
+
+          // Toda la fila enfoca, no solo el texto. Un campo de una línea es un
+          // blanco diminuto para un pulgar, y fallar el toque en el campo del
+          // código de alta es fallar la única acción de esa pantalla.
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.enabled ? _focus.requestFocus : null,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                if (widget.prefix != null) ...[
+                  Text(widget.prefix!, style: Type.data(17, color: Tone.faint)),
+                  const SizedBox(width: Space.sm),
+                ],
+                Expanded(
+                  // **`TextField` y no `EditableText`.** La primera versión usaba
+                  // el segundo, que es la primitiva de dibujo del texto y nada
+                  // más: no enfoca al tocarlo, no ofrece el menú de pegar y no
+                  // maneja la selección.
+                  //
+                  // El resultado fue que **no se podía escribir el código de
+                  // alta**: el campo se veía perfecto, el cursor parpadeaba por el
+                  // `autofocus`, y al tocarlo no pasaba nada. Pegar, que es lo que
+                  // se hace con un código, era directamente imposible.
+                  //
+                  // Lo que hacía sospechoso a `TextField` era su decoración de
+                  // fábrica —caja rellena, etiqueta flotante—, y eso se quita con
+                  // `InputDecoration.collapsed`. El aspecto es el mismo; los
+                  // gestos vuelven.
+                  //
+                  // **`Material` transparente.** `TextField` lo exige como
+                  // ancestro —lo usa para la tinta y para el tema de selección— y
+                  // las pantallas de esta app están hechas sobre `widgets`, sin
+                  // `Scaffold`. Ponerlo aquí deja el componente autosuficiente en
+                  // vez de obligar a cada pantalla a arrastrar un `Scaffold` que
+                  // no necesita para nada más.
+                  //
+                  // Transparente: no pinta nada. Lo único que aporta es el
+                  // contexto que `TextField` va a buscar.
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: TextField(
+                      controller: widget.controller,
+                      focusNode: _focus,
+                      style: estilo,
+                      cursorColor: Tone.bone,
+                      enabled: widget.enabled,
+                      autofocus: widget.autofocus,
+                      keyboardType: widget.keyboardType,
+                      inputFormatters: widget.inputFormatters,
+                      onSubmitted: widget.onSubmitted,
+                      textInputAction: widget.onSubmitted == null
+                          ? TextInputAction.next
+                          : TextInputAction.go,
+                      // Ni corrector ni sugerencias: aquí se escriben nombres de
+                      // cuenta, dígitos y cifras. El corrector solo puede estorbar.
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      decoration:
+                          const InputDecoration.collapsed(hintText: null),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: Space.md),
           AnimatedContainer(
