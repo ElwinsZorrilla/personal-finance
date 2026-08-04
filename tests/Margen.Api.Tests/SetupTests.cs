@@ -532,6 +532,31 @@ public sealed class SetupTests(PostgresFixture postgres)
 
         Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
     }
+    [Fact]
+    public async Task las_categorias_se_pueden_listar_con_su_identificador()
+    {
+        // Sin los identificadores, la pantalla de movimientos puede enseñar el
+        // nombre que le llega pero no ofrecer otro: era lo que la dejaba en
+        // solo lectura.
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        await client.PostAsync(
+            new Uri("/setup/categories/defaults", UriKind.Relative), null);
+
+        List<CategoryView> categorias =
+            (await client.GetFromJsonAsync<List<CategoryView>>("/setup/categories"))!;
+
+        Assert.NotEmpty(categorias);
+        Assert.All(categorias, c => Assert.NotEqual(Guid.Empty, c.Id));
+        Assert.All(categorias, c => Assert.False(string.IsNullOrWhiteSpace(c.Name)));
+
+        // Ordenadas por prioridad: arriba lo que no se puede recortar.
+        List<string> prioridades = [.. categorias.Select(c => c.Priority)];
+        Assert.Equal("Essential", prioridades[0]);
+    }
+
 
 
 

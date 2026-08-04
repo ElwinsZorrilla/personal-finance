@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/dashboard_repository.dart';
 import '../../data/enrollment.dart';
 import '../../data/setup_repository.dart';
+import '../../data/transactions_repository.dart';
 import '../../design/tokens.dart';
 import 'dashboard_loader.dart';
 import 'enrollment_screen.dart';
@@ -25,6 +26,7 @@ class SessionGate extends StatefulWidget {
     required this.repository,
     required this.review,
     this.setup,
+    this.movements,
   });
 
   final Enrollment enrollment;
@@ -35,6 +37,9 @@ class SessionGate extends StatefulWidget {
   /// Se pasa de largo hasta el panel: es este quien descubre, al recibir un
   /// 409, que lo que falta es configurar la app.
   final SetupRepository? setup;
+
+  /// Ver `AppShell.movements`.
+  final TransactionsRepository? movements;
 
   @override
   State<SessionGate> createState() => _SessionGateState();
@@ -85,6 +90,7 @@ class _SessionGateState extends State<SessionGate> {
         repository: widget.repository,
         review: widget.review,
         setup: widget.setup,
+        movements: widget.movements,
       );
     }
 

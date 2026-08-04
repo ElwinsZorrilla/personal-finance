@@ -58,6 +58,11 @@ public static class SetupEndpoints
             .WithName("OpenPeriod")
             .Produces<PeriodOpenedView>(StatusCodes.Status201Created);
 
+        group.MapGet("/categories", ListCategoriesAsync)
+            .RequireAuthorization(ScopePolicies.Full)
+            .WithName("ListCategories")
+            .Produces<IReadOnlyList<CategoryView>>();
+
         group.MapGet("/accounts", ListAccountsAsync)
             .RequireAuthorization(ScopePolicies.Full)
             .WithName("ListAccounts")
@@ -314,6 +319,36 @@ public static class SetupEndpoints
             $"/setup/periods/{periodo.Id}",
             new PeriodOpenedView(
                 periodo.Id, periodo.StartDate, periodo.EndDate, periodo.ExpectedIncome.Cents, true));
+    }
+
+    /// <summary>
+    /// Las categorías, ordenadas por prioridad y luego por nombre.
+    /// </summary>
+    /// <remarks>
+    /// Existe para poder **cambiar la categoría de un movimiento**: sin los
+    /// identificadores, la app puede enseñar el nombre que le llega pero no
+    /// ofrecer otro. Era el hueco que dejaba la pantalla de movimientos en solo
+    /// lectura.
+    ///
+    /// El orden pone primero lo que no se puede recortar. En una lista para
+    /// elegir, eso deja arriba lo que casi nunca se toca y abajo lo flexible,
+    /// que es donde de verdad se corrige una clasificación.
+    /// </remarks>
+    private static async Task<IResult> ListCategoriesAsync(
+        [FromServices] MargenDbContext db,
+        CancellationToken cancellationToken)
+    {
+        List<Category> categorias = await db.Categories
+            .AsNoTracking()
+            .OrderBy(c => c.Priority)
+            .ThenBy(c => c.Name)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return Results.Ok(categorias
+            .Select(c => new CategoryView(
+                c.Id, c.Name, c.Priority.ToString(), c.Icon, c.IsSystem))
+            .ToList());
     }
 
     /// <summary>Las cuentas activas, en el orden en que se dieron de alta.</summary>

@@ -265,3 +265,19 @@ public sealed record PeriodOpenedView(
 
     /// <summary>Falso si ya existía uno abierto y se devolvió ese.</summary>
     bool Created);
+
+/// <summary>Una categoría, para poder elegirla al clasificar.</summary>
+public sealed record CategoryView(
+    Guid Id,
+    string Name,
+
+    /// <summary>`Essential`, `Committed`, `Flexible` o `Discretionary`.</summary>
+    string Priority,
+
+    string? Icon,
+
+    /// <summary>
+    /// Del sistema: hay lógica que la nombra y no se puede borrar. «Sin
+    /// clasificar» es una de ellas.
+    /// </summary>
+    bool IsSystem);

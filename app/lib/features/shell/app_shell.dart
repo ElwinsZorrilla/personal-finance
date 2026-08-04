@@ -4,10 +4,12 @@ import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import '../../domain/models.dart';
 import '../../data/setup_repository.dart';
+import '../../data/transactions_repository.dart';
 import '../budget/budget_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../review/review_screen.dart';
 import '../settings/period_settings_screen.dart';
+import '../transactions/movements_screen.dart';
 import '../transactions/transactions_screen.dart';
 
 /// Cinco destinos, ni uno más. Cada pestaña responde a una pregunta distinta:
@@ -22,6 +24,7 @@ class AppShell extends StatefulWidget {
     required this.snapshot,
     this.onResolve,
     this.setup,
+    this.movements,
     this.onChanged,
   });
 
@@ -33,6 +36,10 @@ class AppShell extends StatefulWidget {
   /// Nulo con datos de prueba: ahí no hay servidor cuyo ciclo corregir, y sin
   /// esto la pestaña de ajustes no aparece.
   final SetupRepository? setup;
+
+  /// Nulo con datos de prueba. Sin él, la pestaña de movimientos enseña el
+  /// recorte que trae el panel, que es lo que hacía antes.
+  final TransactionsRepository? movements;
 
   /// Recargar el panel tras un cambio de ajustes. El ciclo decide el reparto
   /// diario, así que la cifra de la pantalla anterior deja de valer.
@@ -56,7 +63,13 @@ class _AppShellState extends State<AppShell> {
         index: _index,
         children: [
           DashboardScreen(snapshot: s),
-          TransactionsScreen(transactions: s.recent),
+          if (widget.movements case final repo?)
+            MovementsScreen(
+              repository: repo,
+              onChanged: () => widget.onChanged?.call(),
+            )
+          else
+            TransactionsScreen(transactions: s.recent),
           BudgetScreen(snapshot: s),
           ReviewScreen(items: s.attention, onResolve: widget.onResolve),
           if (setup != null)

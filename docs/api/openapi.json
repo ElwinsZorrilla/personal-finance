@@ -892,6 +892,29 @@
         }
       }
     },
+    "/setup/categories": {
+      "get": {
+        "tags": [
+          "Puesta en marcha"
+        ],
+        "operationId": "ListCategories",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/setup/accounts/{id}": {
       "put": {
         "tags": [
@@ -1278,6 +1301,37 @@
             "type": "boolean"
           },
           "canBeTrimmed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CategoryView": {
+        "required": [
+          "id",
+          "name",
+          "priority",
+          "icon",
+          "isSystem"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "icon": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isSystem": {
             "type": "boolean"
           }
         }

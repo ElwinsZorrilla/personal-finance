@@ -4,6 +4,7 @@ import '../../core/period.dart';
 import '../../data/api_client.dart';
 import '../../data/dashboard_repository.dart';
 import '../../data/setup_repository.dart';
+import '../../data/transactions_repository.dart';
 import '../../design/tokens.dart';
 import '../../design/typography.dart';
 import '../../domain/models.dart';
@@ -22,6 +23,7 @@ class DashboardLoader extends StatefulWidget {
     required this.repository,
     required this.review,
     this.setup,
+    this.movements,
   });
 
   final DashboardRepository repository;
@@ -30,6 +32,9 @@ class DashboardLoader extends StatefulWidget {
   /// Opcional porque el modo de maquetas no tiene servidor al que preguntar.
   /// Sin él, un 409 se enseña como antes.
   final SetupRepository? setup;
+
+  /// Ver `AppShell.movements`.
+  final TransactionsRepository? movements;
 
   @override
   State<DashboardLoader> createState() => _DashboardLoaderState();
@@ -127,6 +132,7 @@ class _DashboardLoaderState extends State<DashboardLoader> {
             snapshot: snapshot,
             onResolve: _resolve,
             setup: widget.setup,
+            movements: widget.movements,
             onChanged: _load,
           ),
           if (snapshot.isFromCache)
