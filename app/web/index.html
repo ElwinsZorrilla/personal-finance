@@ -62,7 +62,27 @@
       background-color: #0B1418;
       color: #EDE7DC;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+      /* Sin rebote al llegar al final. En iOS, el rebote elástico deja ver el
+         fondo del navegador por encima o por debajo del contenido, y ese
+         vistazo es de las cosas que más delatan que algo es una página. */
       overscroll-behavior: none;
+
+      /* Nada de seleccionar texto ni de lupa al mantener pulsado. En una app no
+         se selecciona la interfaz: se selecciona el contenido de un campo, y de
+         eso se encarga el propio campo. */
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+
+      /* El destello gris del toque es de Safari, no del diseño. La respuesta al
+         toque la da la app: los botones encogen. */
+      -webkit-tap-highlight-color: transparent;
+
+      /* Sin doble toque para acercar. El zoom por pellizco sigue disponible
+         —hay cifras que alguien puede necesitar agrandar— pero el doble toque
+         se dispara sin querer al pulsar rápido dos veces. */
+      touch-action: manipulation;
     }
 
     #cargando {

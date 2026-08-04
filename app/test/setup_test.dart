@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:margen/core/money.dart';
 import 'package:margen/data/api_client.dart';
 import 'package:margen/data/setup_repository.dart';
+import 'package:margen/design/components/field_line.dart';
 import 'package:margen/design/theme.dart';
 import 'package:margen/features/setup/setup_screen.dart';
 
@@ -67,8 +68,40 @@ void main() {
   }
 
   Future<void> pintar(WidgetTester tester, Widget pantalla) async {
+    // Una pantalla alta. El lienzo de prueba por defecto es 800x600 y la
+    // pantalla vive en un `ListView`, que **solo construye lo que se ve**: con
+    // el lienzo corto, el botón y el aviso de error quedaban sin construir y
+    // las pruebas fallaban por no encontrarlos, no por lo que comprueban.
+    tester.view.physicalSize = const Size(420, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(MaterialApp(theme: buildTheme(), home: pantalla));
     await tester.pumpAndSettle();
+  }
+
+  /// Escribe en el campo cuya etiqueta es [etiqueta].
+  ///
+  /// Se busca por la etiqueta y no por el tipo del widget: los campos ya no son
+  /// `TextField` de Material —eso era lo que hacía que la app se leyera como un
+  /// formulario web— y una prueba atada al tipo se rompe con cada cambio del
+  /// sistema visual. La etiqueta es lo que ve quien la usa.
+  Future<void> escribir(
+    WidgetTester tester,
+    String etiqueta,
+    String texto,
+  ) async {
+    final campo = find.ancestor(
+      of: find.text(etiqueta.toUpperCase()),
+      matching: find.byType(FieldLine),
+    );
+
+    expect(campo, findsOneWidget, reason: 'no existe el campo: $etiqueta');
+
+    await tester.enterText(
+      find.descendant(of: campo, matching: find.byType(EditableText)),
+      texto,
+    );
   }
 
   group('SetupRepository', () {
@@ -129,18 +162,9 @@ void main() {
         ),
       );
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nombre'),
-        'Popular corriente',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Últimos cuatro dígitos'),
-        '4821',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Saldo actual'),
-        '12,500.50',
-      );
+      await escribir(tester, 'Nombre', 'Popular corriente');
+      await escribir(tester, 'Últimos cuatro dígitos', '4821');
+      await escribir(tester, 'Saldo actual', '12,500.50');
       await tester.tap(find.text('Dar de alta la cuenta'));
       await tester.pumpAndSettle();
 
@@ -164,18 +188,9 @@ void main() {
         ),
       );
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nombre'),
-        'Popular',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Últimos cuatro dígitos'),
-        '4821',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Saldo actual'),
-        'como mil pesos',
-      );
+      await escribir(tester, 'Nombre', 'Popular');
+      await escribir(tester, 'Últimos cuatro dígitos', '4821');
+      await escribir(tester, 'Saldo actual', 'como mil pesos');
       await tester.tap(find.text('Dar de alta la cuenta'));
       await tester.pumpAndSettle();
 
@@ -201,14 +216,8 @@ void main() {
         ),
       );
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nombre'),
-        'Popular',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Saldo actual'),
-        '1,000.00',
-      );
+      await escribir(tester, 'Nombre', 'Popular');
+      await escribir(tester, 'Saldo actual', '1,000.00');
       await tester.tap(find.text('Dar de alta la cuenta'));
       await tester.pumpAndSettle();
 
@@ -232,14 +241,8 @@ void main() {
         ),
       );
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Día de cobro'),
-        '30',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Ingreso esperado del período'),
-        '0.00',
-      );
+      await escribir(tester, 'Día de cobro', '30');
+      await escribir(tester, 'Ingreso del período', '0.00');
       await tester.tap(find.text('Abrir el período'));
       await tester.pumpAndSettle();
 
@@ -287,14 +290,8 @@ void main() {
         ),
       );
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Día de cobro'),
-        '30',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Ingreso esperado del período'),
-        '85,000.00',
-      );
+      await escribir(tester, 'Día de cobro', '30');
+      await escribir(tester, 'Ingreso del período', '85,000.00');
       await tester.tap(find.text('Abrir el período'));
       await tester.pumpAndSettle();
 

@@ -1,10 +1,17 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../core/money.dart';
 import '../../data/api_client.dart';
 import '../../data/setup_repository.dart';
+import '../../design/components/action_button.dart';
+import '../../design/components/choice_row.dart';
+import '../../design/components/error_note.dart';
+import '../../design/components/field_line.dart';
 import '../../design/tokens.dart';
+import '../../design/typography.dart';
 
 /// La configuración inicial: categorías, una cuenta y el período abierto.
 ///
@@ -17,6 +24,11 @@ import '../../design/tokens.dart';
 /// asignar, sin cuenta los movimientos no tienen dónde colgarse, y sin período
 /// no hay contra qué comparar. Es el mismo orden en que el servidor lista lo
 /// que falta.
+///
+/// **Se enseña un paso a la vez.** La primera versión ponía los tres
+/// formularios en la misma pantalla, y tres formularios seguidos en un teléfono
+/// se leen como una página de trámite. Uno a la vez, con los anteriores
+/// plegados en una línea, se lee como una app.
 class SetupScreen extends StatefulWidget {
   const SetupScreen({
     super.key,
@@ -64,6 +76,14 @@ class _SetupScreenState extends State<SetupScreen> {
         _working = false;
       });
 
+      // Confirma que el paso entró. Va aquí y no antes porque este golpecito no
+      // es acuse del toque —ese lo da el botón— sino de que el servidor guardó.
+      //
+      // **Sin esperarlo.** Es una vibración: nada de lo que viene después
+      // depende de que termine, y esperarla ataba el avance de la pantalla a un
+      // canal de plataforma que en un entorno sin vibrador no responde.
+      unawaited(HapticFeedback.mediumImpact());
+
       if (actualizado.isReady) widget.onReady();
     } on ApiFailure catch (failure) {
       _fallo(failure.message);
@@ -75,115 +95,175 @@ class _SetupScreenState extends State<SetupScreen> {
   void _fallo(String mensaje) {
     if (!mounted) return;
 
+    HapticFeedback.heavyImpact();
+
     setState(() {
       _working = false;
       _error = mensaje;
     });
   }
 
+  /// Cuál de los tres toca: el primero que el servidor no da por hecho.
+  int get _actual {
+    if (_status.categories == 0) return 1;
+    if (_status.accounts == 0) return 2;
+    return 3;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Tone.ink,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Falta configurar',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Tres cosas, una vez. Después la app calcula sola.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: Tone.muted),
-                  ),
-                  const SizedBox(height: 28),
-                  _Paso(
-                    numero: 1,
-                    titulo: 'Categorías',
-                    hecho: _status.categories > 0,
-                    resumen: '${_status.categories} creadas',
-                    child: _Categorias(
-                      working: _working,
-                      onCrear: () => _paso(widget.repository.seedCategories),
-                    ),
-                  ),
-                  _Paso(
-                    numero: 2,
-                    titulo: 'Una cuenta',
-                    hecho: _status.accounts > 0,
-                    resumen: '${_status.accounts} dada de alta',
-                    child: _Cuenta(
-                      working: _working,
-                      onCrear: (nombre, ultimos, tipo, saldo, limite) => _paso(
-                        () => widget.repository.createAccount(
-                          name: nombre,
-                          lastFour: ultimos,
-                          kind: tipo,
-                          balance: saldo,
-                          creditLimit: limite,
-                        ),
-                      ),
-                    ),
-                  ),
-                  _Paso(
-                    numero: 3,
-                    titulo: 'El período',
-                    hecho: _status.hasOpenPeriod,
-                    resumen: 'abierto',
-                    child: _Periodo(
-                      working: _working,
-                      onAbrir: (dia, ingreso, fondo, ahorro) => _paso(
-                        () => widget.repository.openPeriod(
-                          payDay: dia,
-                          expectedIncome: ingreso,
-                          safetyFund: fondo,
-                          committedSavings: ahorro,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 20),
-                    Text(
-                      _error!,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Signal.risk),
-                    ),
-                  ],
-                  if (_status.emailsWaiting > 0) ...[
-                    const SizedBox(height: 24),
-                    Text(
-                      // Se dice porque cambia lo que hay que hacer al terminar:
-                      // esos correos no entran solos, y sin avisar se esperarían
-                      // movimientos que no van a aparecer.
-                      'Hay ${_status.emailsWaiting} correos guardados esperando '
-                      'una cuenta. No se pierden, pero hay que volver a '
-                      'procesarlos cuando termines.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Tone.faint),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+    final relleno = MediaQuery.paddingOf(context);
+
+    return ColoredBox(
+      color: Tone.ink,
+      child: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.only(
+            left: Space.gutter,
+            right: Space.gutter,
+            top: relleno.top + Space.xxl,
+            bottom: Space.xxxl,
           ),
+          children: [
+            Text('PASO $_actual DE 3', style: Type.eyebrow()),
+            const SizedBox(height: Space.lg),
+            Text(_titulo, style: Type.display(32)),
+            const SizedBox(height: Space.lg),
+            Text(_entrada, style: Type.body(15, color: Tone.muted)),
+            const SizedBox(height: Space.xl),
+            _Hechos(status: _status),
+            const SizedBox(height: Space.xl),
+            switch (_actual) {
+              1 => _Categorias(
+                  working: _working,
+                  onCrear: () => _paso(widget.repository.seedCategories),
+                ),
+              2 => _Cuenta(
+                  working: _working,
+                  onCrear: (nombre, ultimos, tipo, saldo, limite) => _paso(
+                    () => widget.repository.createAccount(
+                      name: nombre,
+                      lastFour: ultimos,
+                      kind: tipo,
+                      balance: saldo,
+                      creditLimit: limite,
+                    ),
+                  ),
+                ),
+              _ => _Periodo(
+                  working: _working,
+                  onAbrir: (dia, ingreso, fondo, ahorro) => _paso(
+                    () => widget.repository.openPeriod(
+                      payDay: dia,
+                      expectedIncome: ingreso,
+                      safetyFund: fondo,
+                      committedSavings: ahorro,
+                    ),
+                  ),
+                ),
+            },
+            if (_error != null) ...[
+              const SizedBox(height: Space.lg),
+              ErrorNote(_error!),
+            ],
+            if (_status.emailsWaiting > 0) ...[
+              const SizedBox(height: Space.xxl),
+              Text(
+                // Se dice porque cambia lo que hay que hacer al terminar: esos
+                // correos no entran solos, y sin avisar se esperarían
+                // movimientos que no van a aparecer.
+                '${_status.emailsWaiting} correos del banco están guardados '
+                'esperando una cuenta donde colgarse. No se pierden.',
+                style: Type.body(12, color: Tone.faint),
+              ),
+            ],
+          ],
         ),
       ),
+    );
+  }
+
+  String get _titulo => switch (_actual) {
+        1 => 'Primero,\nlas categorías',
+        2 => 'Ahora,\ntu cuenta',
+        _ => 'Y tu ciclo\nde dinero',
+      };
+
+  String get _entrada => switch (_actual) {
+        1 => 'Son las etiquetas con las que se clasifica cada gasto. Se crean '
+            'de una vez y se pueden renombrar después.',
+        2 => 'La que recibe tu sueldo. Si tienes más, se añaden luego: empieza '
+            'por la principal.',
+        _ =>
+          'El período no va del 1 al 30. Va de un cobro al siguiente, que es '
+              'el ciclo real de tu dinero.',
+      };
+}
+
+/// Los pasos ya dados, plegados en una línea cada uno.
+///
+/// No es decoración: es lo que dice cuánto falta. Sin esto, cada paso parece
+/// una pantalla suelta y no se sabe si queda uno o quedan diez.
+class _Hechos extends StatelessWidget {
+  const _Hechos({required this.status});
+
+  final SetupStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final hechos = <String>[
+      if (status.categories > 0) '${status.categories} categorías',
+      if (status.accounts > 0)
+        '${status.accounts} ${status.accounts == 1 ? "cuenta" : "cuentas"}',
+    ];
+
+    if (hechos.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final hecho in hechos)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Space.sm),
+            child: Row(
+              children: [
+                // Símbolo y no solo color: quien no distingue el verde tiene
+                // que poder saber qué ya está hecho.
+                Text('✓', style: Type.body(13, color: Signal.credit)),
+                const SizedBox(width: Space.md),
+                Text(hecho, style: Type.body(13, color: Tone.muted)),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _Categorias extends StatelessWidget {
+  const _Categorias({required this.working, required this.onCrear});
+
+  final bool working;
+  final VoidCallback onCrear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Los nombres son fijos porque el clasificador devuelve exactamente '
+          'esos. Uno distinto no clasificaría nada nunca.',
+          style: Type.body(13, color: Tone.faint),
+        ),
+        const SizedBox(height: Space.xl),
+        ActionButton(
+          label: 'Crear las categorías',
+          busyLabel: 'Creando…',
+          busy: working,
+          onPressed: onCrear,
+        ),
+      ],
     );
   }
 }
@@ -206,98 +286,6 @@ Money? _leerMonto(String texto) {
     return Money.parse(texto, format: AmountFormat.commaThousands);
   } on FormatException {
     return null;
-  }
-}
-
-/// Un paso: cerrado con una marca cuando está hecho, abierto cuando toca.
-class _Paso extends StatelessWidget {
-  const _Paso({
-    required this.numero,
-    required this.titulo,
-    required this.hecho,
-    required this.resumen,
-    required this.child,
-  });
-
-  final int numero;
-  final String titulo;
-  final bool hecho;
-  final String resumen;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Semantics(
-            header: true,
-            label: hecho
-                ? 'Paso $numero, $titulo: hecho, $resumen'
-                : 'Paso $numero, $titulo: pendiente',
-            child: Row(
-              children: [
-                // La marca no es solo color: quien no distingue el verde ve
-                // igualmente el símbolo y el resumen.
-                Text(
-                  hecho ? '✓' : '$numero',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: hecho ? Signal.credit : Tone.muted,
-                      ),
-                ),
-                const SizedBox(width: 10),
-                Text(titulo, style: Theme.of(context).textTheme.titleMedium),
-                if (hecho) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    resumen,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Tone.faint),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (!hecho) ...[
-            const SizedBox(height: 12),
-            child,
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _Categorias extends StatelessWidget {
-  const _Categorias({required this.working, required this.onCrear});
-
-  final bool working;
-  final VoidCallback onCrear;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Se crean con nombres fijos porque el clasificador devuelve esos '
-          'mismos nombres. Se pueden renombrar después.',
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: Tone.muted),
-        ),
-        const SizedBox(height: 12),
-        FilledButton(
-          onPressed: working ? null : onCrear,
-          child: Text(working ? 'Creando…' : 'Crear las categorías'),
-        ),
-      ],
-    );
   }
 }
 
@@ -353,8 +341,7 @@ class _CuentaState extends State<_Cuenta> {
     final saldo = _leerMonto(_saldo.text);
     if (saldo == null) {
       setState(
-        () => _error = 'El saldo no se entiende. Escribe algo como '
-            '12,500.00',
+        () => _error = 'El saldo no se entiende. Escríbelo como 12,500.00',
       );
       return;
     }
@@ -379,79 +366,60 @@ class _CuentaState extends State<_Cuenta> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
+        FieldLine(
+          label: 'Nombre',
           controller: _nombre,
+          hint: 'Popular corriente',
           enabled: !widget.working,
-          decoration: const InputDecoration(
-            labelText: 'Nombre',
-            hintText: 'Popular corriente',
-          ),
         ),
-        const SizedBox(height: 12),
-        TextField(
+        FieldLine(
+          label: 'Últimos cuatro dígitos',
           controller: _ultimos,
+          mono: true,
           enabled: !widget.working,
           keyboardType: TextInputType.number,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
             LengthLimitingTextInputFormatter(4),
           ],
-          decoration: const InputDecoration(
-            labelText: 'Últimos cuatro dígitos',
-            // Es lo único que trae el correo del banco para saber de qué
-            // cuenta habla.
-            helperText: 'Es como el banco identifica la cuenta en sus correos',
-          ),
+          // Es lo único que trae el correo del banco para saber de qué cuenta
+          // habla, así que sin ellos la cuenta no recibiría un solo movimiento.
+          help: 'Así identifica el banco la cuenta en sus correos',
         ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<AccountKind>(
-          initialValue: _tipo,
-          decoration: const InputDecoration(labelText: 'Tipo'),
-          items: [
-            for (final k in AccountKind.values)
-              DropdownMenuItem(value: k, child: Text(k.label)),
-          ],
-          onChanged: widget.working
-              ? null
-              : (valor) => setState(() => _tipo = valor ?? _tipo),
+        ChoiceRow<AccountKind>(
+          label: 'Tipo',
+          selected: _tipo,
+          enabled: !widget.working,
+          options: [for (final k in AccountKind.values) (k, k.label)],
+          onChanged: (valor) => setState(() => _tipo = valor),
         ),
-        const SizedBox(height: 12),
-        TextField(
+        FieldLine(
+          label: 'Saldo actual',
           controller: _saldo,
+          mono: true,
+          prefix: r'RD$',
+          hint: '12,500.00',
           enabled: !widget.working,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Saldo actual',
-            prefixText: 'RD\$ ',
-            hintText: '12,500.00',
-          ),
         ),
-        if (_tipo == AccountKind.credit) ...[
-          const SizedBox(height: 12),
-          TextField(
+        if (_tipo == AccountKind.credit)
+          FieldLine(
+            label: 'Límite de la tarjeta',
             controller: _limite,
+            mono: true,
+            prefix: r'RD$',
             enabled: !widget.working,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Límite de la tarjeta',
-              prefixText: 'RD\$ ',
-            ),
           ),
-        ],
         if (_error != null) ...[
-          const SizedBox(height: 12),
-          Text(
-            _error!,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Signal.risk),
-          ),
+          ErrorNote(_error!),
+          const SizedBox(height: Space.lg),
         ],
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: widget.working ? null : _enviar,
-          child: Text(widget.working ? 'Guardando…' : 'Dar de alta la cuenta'),
+        ActionButton(
+          label: 'Dar de alta la cuenta',
+          busyLabel: 'Guardando…',
+          busy: widget.working,
+          onPressed: _enviar,
         ),
       ],
     );
@@ -496,8 +464,7 @@ class _PeriodoState extends State<_Periodo> {
     final ingreso = _leerMonto(_ingreso.text);
     if (ingreso == null || ingreso.cents <= 0) {
       setState(
-        () => _error = 'El ingreso esperado tiene que ser mayor que '
-            'cero.',
+        () => _error = 'El ingreso esperado tiene que ser mayor que cero.',
       );
       return;
     }
@@ -526,74 +493,54 @@ class _PeriodoState extends State<_Periodo> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          // Es la decisión de diseño de la Fase 3 y conviene que se lea aquí:
-          // el mes del banco no es el mes del dinero de una persona.
-          'El período no va del 1 al 30: va de un cobro al siguiente.',
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: Tone.muted),
-        ),
-        const SizedBox(height: 12),
-        TextField(
+        FieldLine(
+          label: 'Día de cobro',
           controller: _dia,
+          mono: true,
           enabled: !widget.working,
           keyboardType: TextInputType.number,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
             LengthLimitingTextInputFormatter(2),
           ],
-          decoration: const InputDecoration(
-            labelText: 'Día de cobro',
-            helperText: 'Si cobras el 30 y el mes tiene 28, se usa el último',
-          ),
+          help: 'Si cobras el 30 y el mes tiene 28, se usa el último día',
         ),
-        const SizedBox(height: 12),
-        TextField(
+        FieldLine(
+          label: 'Ingreso del período',
           controller: _ingreso,
+          mono: true,
+          prefix: r'RD$',
+          hint: '85,000.00',
           enabled: !widget.working,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Ingreso esperado del período',
-            prefixText: 'RD\$ ',
-          ),
         ),
-        const SizedBox(height: 12),
-        TextField(
+        FieldLine(
+          label: 'Fondo de seguridad',
           controller: _fondo,
+          mono: true,
+          prefix: r'RD$',
           enabled: !widget.working,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Fondo de seguridad (opcional)',
-            prefixText: 'RD\$ ',
-            helperText: 'Lo que no se toca. Sale del gasto seguro',
-          ),
+          help: 'Opcional. Lo que no se toca: sale del gasto seguro',
         ),
-        const SizedBox(height: 12),
-        TextField(
+        FieldLine(
+          label: 'Ahorro comprometido',
           controller: _ahorro,
+          mono: true,
+          prefix: r'RD$',
           enabled: !widget.working,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Ahorro comprometido (opcional)',
-            prefixText: 'RD\$ ',
-          ),
+          help: 'Opcional',
         ),
         if (_error != null) ...[
-          const SizedBox(height: 12),
-          Text(
-            _error!,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Signal.risk),
-          ),
+          ErrorNote(_error!),
+          const SizedBox(height: Space.lg),
         ],
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: widget.working ? null : _enviar,
-          child: Text(widget.working ? 'Abriendo…' : 'Abrir el período'),
+        ActionButton(
+          label: 'Abrir el período',
+          busyLabel: 'Abriendo…',
+          busy: widget.working,
+          onPressed: _enviar,
         ),
       ],
     );

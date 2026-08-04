@@ -1,10 +1,14 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../data/api_client.dart';
 import '../../data/enrollment.dart';
+import '../../design/components/action_button.dart';
+import '../../design/components/error_note.dart';
+import '../../design/components/field_line.dart';
 import '../../design/tokens.dart';
+import '../../design/typography.dart';
 
 /// La pantalla de entrada: da de alta este dispositivo con el código.
 ///
@@ -12,6 +16,12 @@ import '../../design/tokens.dart';
 /// de inicio de sesión: no hay usuario ni contraseña que escribir, porque el
 /// servidor no guarda ninguna. Lo que se escribe una vez es el código de alta,
 /// y a partir de ahí la identidad es una clave que vive en este teléfono.
+///
+/// Está construida sobre `widgets` y no sobre Material, como el resto del
+/// sistema visual. La primera versión usaba `Scaffold`, `TextField` y
+/// `FilledButton` tal cual venían, y el resultado —caja rellena, etiqueta
+/// flotante, subrayado grueso— se leía como un formulario web pegado encima de
+/// la app. Era la primera pantalla que veía cualquiera.
 class EnrollmentScreen extends StatefulWidget {
   const EnrollmentScreen({
     super.key,
@@ -104,71 +114,54 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Tone.ink,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Margen',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Escribe el código de alta para conectar este dispositivo. '
-                    'Solo hace falta una vez.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Tone.muted,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  TextField(
-                    controller: _controller,
-                    enabled: !_working,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    textInputAction: TextInputAction.go,
-                    onSubmitted: (_) => _working ? null : _submit(),
-                    decoration: const InputDecoration(
-                      labelText: 'Código de alta',
-                    ),
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      _error!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Signal.risk,
-                          ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: _working ? null : _submit,
-                    child: Text(_working ? 'Conectando…' : 'Conectar'),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'La clave de este dispositivo se genera aquí y no sale de '
-                    'este teléfono. El servidor solo guarda su parte pública.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Tone.faint,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
+    final relleno = MediaQuery.paddingOf(context);
+
+    return ColoredBox(
+      color: Tone.ink,
+      child: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.only(
+            left: Space.gutter,
+            right: Space.gutter,
+            top: relleno.top + Space.xxxl,
+            bottom: Space.xxxl,
           ),
+          children: [
+            Text('MARGEN', style: Type.eyebrow()),
+            const SizedBox(height: Space.lg),
+            Text('Conecta este\ndispositivo', style: Type.display(34)),
+            const SizedBox(height: Space.lg),
+            Text(
+              'Escribe el código de alta. Solo hace falta una vez: después este '
+              'teléfono se identifica solo.',
+              style: Type.body(15, color: Tone.muted),
+            ),
+            const SizedBox(height: Space.xxl),
+            FieldLine(
+              label: 'Código de alta',
+              controller: _controller,
+              mono: true,
+              enabled: !_working,
+              autofocus: true,
+              onSubmitted: (_) => _working ? null : _submit(),
+            ),
+            if (_error != null) ...[
+              ErrorNote(_error!),
+              const SizedBox(height: Space.lg),
+            ],
+            ActionButton(
+              label: 'Conectar',
+              busyLabel: 'Conectando…',
+              busy: _working,
+              onPressed: _submit,
+            ),
+            const SizedBox(height: Space.xxl),
+            Text(
+              'La clave de este dispositivo se genera aquí y no sale de este '
+              'teléfono. El servidor solo guarda su parte pública.',
+              style: Type.body(12, color: Tone.faint),
+            ),
+          ],
         ),
       ),
     );

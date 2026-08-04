@@ -45,6 +45,29 @@ ThemeData buildTheme() {
       centerTitle: false,
       titleTextStyle: Type.display(20),
     ),
+    // **Red de seguridad, no la forma de trabajar.** Los campos de la app son
+    // `FieldLine`, construido sobre `widgets`. Esto existe para que un
+    // `TextField` de Material que se cuele en el futuro no llegue con su caja
+    // rellena y su etiqueta flotante, que es exactamente lo que hacía que las
+    // dos primeras pantallas se leyeran como un formulario web.
+    inputDecorationTheme: InputDecorationTheme(
+      filled: false,
+      contentPadding: const EdgeInsets.symmetric(vertical: Space.md),
+      border: const UnderlineInputBorder(
+        borderSide: BorderSide(color: Tone.line),
+      ),
+      enabledBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: Tone.line),
+      ),
+      focusedBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: Tone.bone),
+      ),
+      labelStyle: Type.eyebrow(),
+      floatingLabelStyle: Type.eyebrow(color: Tone.bone),
+      hintStyle: Type.body(15, color: Tone.faint),
+      helperStyle: Type.body(12, color: Tone.faint),
+      errorStyle: Type.body(12, color: Signal.risk),
+    ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: Tone.bone,
