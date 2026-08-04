@@ -58,6 +58,16 @@ public static class SetupEndpoints
             .WithName("OpenPeriod")
             .Produces<PeriodOpenedView>(StatusCodes.Status201Created);
 
+        group.MapGet("/periods/current", CurrentPeriodAsync)
+            .RequireAuthorization(ScopePolicies.Full)
+            .WithName("GetCurrentPeriod")
+            .Produces<PeriodOpenedView>();
+
+        group.MapPut("/periods/current", UpdatePeriodAsync)
+            .RequireAuthorization(ScopePolicies.Full)
+            .WithName("UpdateCurrentPeriod")
+            .Produces<PeriodOpenedView>();
+
         return app;
     }
 
@@ -290,6 +300,109 @@ public static class SetupEndpoints
             new PeriodOpenedView(
                 periodo.Id, periodo.StartDate, periodo.EndDate, periodo.ExpectedIncome.Cents, true));
     }
+
+    /// <summary>El período abierto que contiene hoy.</summary>
+    private static async Task<IResult> CurrentPeriodAsync(
+        [FromServices] MargenDbContext db,
+        [FromServices] TimeProvider clock,
+        CancellationToken cancellationToken)
+    {
+        DateOnly hoy = LocalTime.LocalDateOf(clock.GetUtcNow().UtcDateTime);
+
+        BudgetPeriod? abierto = await db.BudgetPeriods
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                p => !p.IsClosed && p.StartDate <= hoy && p.EndDate >= hoy, cancellationToken)
+            .ConfigureAwait(false);
+
+        return abierto is null
+            ? ApiResults.NotFound("No hay ningún período abierto que contenga hoy.")
+            : Results.Ok(ToView(abierto, created: false));
+    }
+
+    /// <summary>
+    /// Corrige el período abierto: días de cobro, ingreso y apartados.
+    /// </summary>
+    /// <remarks>
+    /// Existe porque <see cref="OpenPeriodAsync"/> es idempotente y devuelve el
+    /// que hay en vez de cambiarlo. Sin esto, un período abierto con el
+    /// calendario equivocado no se puede arreglar hasta que termine, y en
+    /// producción pasó exactamente eso: se abrió con un solo cobro antes de que
+    /// existieran los dos.
+    ///
+    /// **Las fechas se recalculan.** Un período que dice cobrar dos veces al mes
+    /// y abarca treinta días no es un período con una etiqueta mal puesta: es
+    /// una cifra de gasto diario equivocada. Cambiar el calendario sin mover las
+    /// fechas dejaría la mentira intacta y encima con aspecto de estar arreglada.
+    ///
+    /// La consecuencia hay que decirla: al acortarse, los movimientos que
+    /// quedan antes del inicio nuevo **salen de este período**. Es lo correcto
+    /// —pertenecen al ciclo anterior— y por eso la respuesta devuelve las fechas
+    /// resultantes, para que quien llama pueda enseñarlas antes de dar por buena
+    /// la corrección.
+    /// </remarks>
+    private static async Task<IResult> UpdatePeriodAsync(
+        [FromBody] OpenPeriodRequest request,
+        [FromServices] MargenDbContext db,
+        [FromServices] TimeProvider clock,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        Outcome<PaySchedule> calendario = PaySchedule.Of(request.PayDays ?? []);
+
+        if (!calendario.IsComputed)
+        {
+            return ApiResults.BadRequest(calendario.Reason!);
+        }
+
+        if (request.ExpectedIncomeCents <= 0)
+        {
+            return ApiResults.BadRequest("El ingreso esperado tiene que ser mayor que cero.");
+        }
+
+        DateOnly hoy = LocalTime.LocalDateOf(clock.GetUtcNow().UtcDateTime);
+
+        BudgetPeriod? abierto = await db.BudgetPeriods
+            .FirstOrDefaultAsync(
+                p => !p.IsClosed && p.StartDate <= hoy && p.EndDate >= hoy, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (abierto is null)
+        {
+            return ApiResults.NotFound("No hay ningún período abierto que contenga hoy.");
+        }
+
+        BudgetCycle ciclo = calendario.Value.CycleAround(hoy);
+
+        // Dos períodos no pueden empezar el mismo día: hay un índice único que
+        // lo impide. Se comprueba antes para responder con una frase en vez de
+        // con el error de la base.
+        bool choca = await db.BudgetPeriods
+            .AnyAsync(
+                p => p.Id != abierto.Id && p.StartDate == ciclo.Start, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (choca)
+        {
+            return ApiResults.BadRequest(
+                $"Ya hay otro período que empieza el {ciclo.Start:dd/MM/yyyy}.");
+        }
+
+        abierto.PayDays = [.. calendario.Value.Days];
+        abierto.StartDate = ciclo.Start;
+        abierto.EndDate = ciclo.End;
+        abierto.ExpectedIncome = new Money(request.ExpectedIncomeCents);
+        abierto.SafetyFund = new Money(request.SafetyFundCents ?? 0);
+        abierto.CommittedSavings = new Money(request.CommittedSavingsCents ?? 0);
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        return Results.Ok(ToView(abierto, created: false));
+    }
+
+    private static PeriodOpenedView ToView(BudgetPeriod p, bool created) => new(
+        p.Id, p.StartDate, p.EndDate, p.ExpectedIncome.Cents, created);
 
     private static AccountView ToView(Account a) => new(
         a.Id, a.Name, a.LastFour, a.Kind.ToString(), a.Balance.Cents, a.CreditLimit?.Cents);

@@ -1,6 +1,27 @@
 import '../core/money.dart';
 import 'api_client.dart';
 
+/// El período que contiene hoy.
+class OpenPeriod {
+  const OpenPeriod({
+    required this.startDate,
+    required this.endDate,
+    required this.expectedIncome,
+  });
+
+  factory OpenPeriod.fromJson(Map<String, dynamic> json) => OpenPeriod(
+        startDate: DateTime.parse(json['startDate'] as String),
+        endDate: DateTime.parse(json['endDate'] as String),
+        expectedIncome: Money(json['expectedIncomeCents'] as int? ?? 0),
+      );
+
+  final DateTime startDate;
+  final DateTime endDate;
+  final Money expectedIncome;
+
+  int get totalDays => endDate.difference(startDate).inDays + 1;
+}
+
 /// Qué le falta al servidor para poder calcular.
 ///
 /// Lleva la lista de motivos y no solo un sí o un no. El servidor la escribe en
@@ -99,6 +120,38 @@ class SetupRepository {
         'balanceCents': balance.cents,
         'creditLimitCents': creditLimit?.cents,
       });
+
+  /// El período abierto, o nulo si no hay ninguno que contenga hoy.
+  Future<OpenPeriod?> currentPeriod() async {
+    try {
+      return OpenPeriod.fromJson(await _api.getJson('/setup/periods/current'));
+    } on ApiFailure catch (failure) {
+      // Un 404 aquí no es un error: es «todavía no hay período». Devolverlo
+      // como fallo obligaría a quien llama a distinguirlo por el código.
+      if (failure.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  /// Corrige el período abierto: días de cobro, ingreso y apartados.
+  ///
+  /// **Las fechas se recalculan en el servidor.** Un período que dice cobrar
+  /// dos veces al mes y abarca treinta días no es una etiqueta mal puesta: es
+  /// una cifra de gasto diario equivocada.
+  Future<OpenPeriod> updatePeriod({
+    required List<int> payDays,
+    required Money expectedIncome,
+    Money? safetyFund,
+    Money? committedSavings,
+  }) async =>
+      OpenPeriod.fromJson(
+        await _api.putJson('/setup/periods/current', {
+          'payDays': payDays,
+          'expectedIncomeCents': expectedIncome.cents,
+          'safetyFundCents': safetyFund?.cents,
+          'committedSavingsCents': committedSavings?.cents,
+        }),
+      );
 
   /// Abre el período que contiene hoy.
   ///

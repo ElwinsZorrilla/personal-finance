@@ -123,7 +123,12 @@ class _DashboardLoaderState extends State<DashboardLoader> {
     if (snapshot != null) {
       return Stack(
         children: [
-          AppShell(snapshot: snapshot, onResolve: _resolve),
+          AppShell(
+            snapshot: snapshot,
+            onResolve: _resolve,
+            setup: widget.setup,
+            onChanged: _load,
+          ),
           if (snapshot.isFromCache)
             Positioned(
               left: 0,

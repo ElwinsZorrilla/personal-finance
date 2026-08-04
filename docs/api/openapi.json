@@ -870,6 +870,54 @@
           }
         }
       }
+    },
+    "/setup/periods/current": {
+      "get": {
+        "tags": [
+          "Puesta en marcha"
+        ],
+        "operationId": "GetCurrentPeriod",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodOpenedView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Puesta en marcha"
+        ],
+        "operationId": "UpdateCurrentPeriod",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenPeriodRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodOpenedView"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

@@ -120,6 +120,19 @@ class ApiClient {
     return _decode(response);
   }
 
+  /// Corrige algo que ya existe.
+  ///
+  /// Es `PUT` y no otro `POST` porque el servidor distingue: `POST /setup/periods`
+  /// es idempotente y **devuelve** el período abierto sin tocarlo, mientras que
+  /// esto lo cambia. Dos verbos para dos cosas distintas evita que corregir se
+  /// confunda con crear.
+  Future<Map<String, dynamic>> putJson(String path, Object body) async {
+    final response = await _run(
+      ApiRequest(method: 'PUT', path: path, body: body),
+    );
+    return _decode(response);
+  }
+
   Future<ApiResponse> _run(ApiRequest request) async {
     ApiFailure? last;
 

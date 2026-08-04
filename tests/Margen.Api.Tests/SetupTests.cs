@@ -310,5 +310,100 @@ public sealed class SetupTests(PostgresFixture postgres)
 
         Assert.Equal([15, 31], periodo.PayDays);
     }
+    [Fact]
+    public async Task corregir_el_calendario_recalcula_las_fechas()
+    {
+        // El caso real: el período de producción se abrió con un solo cobro el
+        // 15, antes de que existieran los dos. `POST /setup/periods` es
+        // idempotente y devuelve el que hay, así que sin esto no había forma de
+        // arreglarlo hasta que terminara.
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        await client.PostAsJsonAsync(
+            "/setup/periods", new OpenPeriodRequest([15], 3_500_000, null, null));
+
+        HttpResponseMessage respuesta = await client.PutAsJsonAsync(
+            "/setup/periods/current",
+            new OpenPeriodRequest([15, 31], 4_250_000, null, null));
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+
+        PeriodOpenedView periodo =
+            (await respuesta.Content.ReadFromJsonAsync<PeriodOpenedView>())!;
+
+        int dias = periodo.EndDate.DayNumber - periodo.StartDate.DayNumber + 1;
+
+        // **Las fechas se recalculan.** Un período que dice cobrar dos veces al
+        // mes y abarca treinta días no es una etiqueta mal puesta: es una cifra
+        // de gasto diario equivocada.
+        Assert.InRange(dias, 13, 17);
+        Assert.Equal(4_250_000, periodo.ExpectedIncomeCents);
+
+        await using MargenDbContext db = Db();
+        Margen.Domain.Entities.BudgetPeriod guardado =
+            await db.BudgetPeriods.SingleAsync();
+
+        Assert.Equal([15, 31], guardado.PayDays);
+    }
+
+    [Fact]
+    public async Task corregir_sin_periodo_abierto_da_404()
+    {
+        // Fallo cerrado: no se crea uno por las buenas. Crear un período al
+        // intentar corregir otro que no existe es inventar un ciclo.
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        HttpResponseMessage respuesta = await client.PutAsJsonAsync(
+            "/setup/periods/current",
+            new OpenPeriodRequest([15, 31], 4_250_000, null, null));
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task corregir_con_un_calendario_invalido_no_toca_nada()
+    {
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        await client.PostAsJsonAsync(
+            "/setup/periods", new OpenPeriodRequest([15], 3_500_000, null, null));
+
+        HttpResponseMessage respuesta = await client.PutAsJsonAsync(
+            "/setup/periods/current",
+            new OpenPeriodRequest([45], 4_250_000, null, null));
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+
+        await using MargenDbContext db = Db();
+        Margen.Domain.Entities.BudgetPeriod intacto =
+            await db.BudgetPeriods.SingleAsync();
+
+        Assert.Equal([15], intacto.PayDays);
+        Assert.Equal(3_500_000, intacto.ExpectedIncome.Cents);
+    }
+
+    [Fact]
+    public async Task se_puede_consultar_el_periodo_abierto()
+    {
+        (TestApp app, HttpClient client) = await VaciaAsync();
+        await using var _1 = app;
+        using var _2 = client;
+
+        await client.PostAsJsonAsync(
+            "/setup/periods", new OpenPeriodRequest([15, 31], 4_250_000, null, null));
+
+        PeriodOpenedView periodo =
+            (await client.GetFromJsonAsync<PeriodOpenedView>("/setup/periods/current"))!;
+
+        Assert.Equal(4_250_000, periodo.ExpectedIncomeCents);
+        Assert.False(periodo.Created);
+    }
+
 
 }
